@@ -20,7 +20,8 @@ allprojects {
     version = '1.0'
     ext {
         appName = "BGJ2021.1"
-        gdxVersion = '1.9.14'
+        gdxVersion = '1.9.13'
+        ktxVersion = '1.9.13-b1'
         roboVMVersion = '2.3.12'
         box2DLightsVersion = '1.5'
         ashleyVersion = '1.7.3'
@@ -62,5 +63,11 @@ project(":core") {
         api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         api "com.badlogicgames.ashley:ashley:$ashleyVersion"
         api "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+        api "io.github.libktx:ktx-app:$ktxVersion"
+        api "io.github.libktx:ktx-collections:$ktxVersion"
+        api "io.github.libktx:ktx-math:$ktxVersion"
+        api "io.github.libktx:ktx-graphics:$ktxVersion"
+        api "io.github.libktx:ktx-log:$ktxVersion"
+        api "io.github.libktx:ktx-inject:$ktxVersion"
     }
 }
