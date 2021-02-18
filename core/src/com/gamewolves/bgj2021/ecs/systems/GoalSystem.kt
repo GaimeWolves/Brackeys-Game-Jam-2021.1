@@ -20,6 +20,7 @@ class GoalSystem(
         allOf(GoalComponent::class).get()
 ), Listener<Move.SnakeMove> {
     private lateinit var lastMove: Move.SnakeMove
+    private var goalsReached = 0
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
@@ -33,8 +34,11 @@ class GoalSystem(
     }
 
     override fun update(deltaTime: Float) {
-        game.hasWon = true
+        goalsReached = 0
         super.update(deltaTime)
+
+        if (goalsReached == entities.size())
+            game.hasWon = true
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
@@ -44,9 +48,8 @@ class GoalSystem(
         engine.getEntitiesFor(allOf(SnakeComponent::class).get()).forEach { snakeEntity ->
             run {
                 snakeEntity[SnakeComponent.mapper]?.let { snake ->
-                    if (snake.snakeType == goal.snakeType && !snake.parts.contains(goal.position)) {
-                        //game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
-                        game.hasWon = false
+                    if (snake.snakeType == goal.snakeType && snake.parts.contains(goal.position)) {
+                        goalsReached++
                         return
                     }
                 }

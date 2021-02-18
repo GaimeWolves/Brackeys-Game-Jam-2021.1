@@ -280,8 +280,8 @@ class SnakeInputSystem(
                             val addToFirst = when {
                                 door.facing == Facing.SOUTH && isSplit(lPos, rPos, vec2(0f, door.position.y - 0.5f)) -> 0
                                 door.facing == Facing.NORTH && isSplit(lPos, rPos, vec2(0f, door.position.y + 0.5f)) -> 0
-                                door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 0
-                                door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 0
+                                door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 0
+                                door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 0
                                 else -> 1
                             }
 

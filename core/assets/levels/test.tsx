@@ -3,8 +3,20 @@
  <image source="../miniroguelike-8x8.png" width="128" height="80"/>
  <tile id="36">
   <animation>
-   <frame tileid="36" duration="100"/>
-   <frame tileid="37" duration="100"/>
+   <frame tileid="36" duration="1000"/>
+   <frame tileid="37" duration="1000"/>
+  </animation>
+ </tile>
+ <tile id="96">
+  <animation>
+   <frame tileid="105" duration="1000"/>
+   <frame tileid="96" duration="1000"/>
+  </animation>
+ </tile>
+ <tile id="98">
+  <animation>
+   <frame tileid="98" duration="1000"/>
+   <frame tileid="111" duration="1000"/>
   </animation>
  </tile>
 </tileset>

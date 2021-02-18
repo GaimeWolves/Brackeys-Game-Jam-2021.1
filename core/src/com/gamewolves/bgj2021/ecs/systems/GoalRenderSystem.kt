@@ -21,9 +21,7 @@ class GoalRenderSystem(
         allOf(GoalComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        //viewport.apply()
-        Gdx.gl.glLineWidth(3f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
+        batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }
     }
@@ -32,12 +30,16 @@ class GoalRenderSystem(
         val goal = entity[GoalComponent.mapper]
         require(goal != null) { "Entity $entity must have a GoalComponent." }
 
+        val oldColor = batch.color.cpy()
+
         when (goal.snakeType) {
-            SnakeType.FIRST -> shapeRenderer.color = Color.GREEN
-            SnakeType.SECOND -> shapeRenderer.color = Color.BLUE
-            SnakeType.DOUBLE -> shapeRenderer.color = Color.BLUE
+            SnakeType.FIRST -> batch.color = Color(0f, 1f, 0f, 1f)
+            SnakeType.SECOND -> batch.color = Color(0f, 0f, 1f, 1f)
+            SnakeType.DOUBLE -> batch.color = Color(0f, 1f, 1f, 1f)
         }
 
-        shapeRenderer.circle(goal.position.x + 0.5f, goal.position.y + 0.5f, 0.45f)
+        batch.draw(goal.texture, goal.position.x, goal.position.y, 1f, 1f)
+
+        batch.color = oldColor
     }
 }

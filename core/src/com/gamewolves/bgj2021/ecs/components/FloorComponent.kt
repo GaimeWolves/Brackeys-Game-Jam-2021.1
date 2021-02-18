@@ -8,28 +8,16 @@ import com.gamewolves.bgj2021.ecs.systems.SnakeType
 import ktx.ashley.mapperFor
 import ktx.math.vec2
 
-class DoorComponent : Component, Pool.Poolable {
+class FloorComponent : Component, Pool.Poolable {
     val position = vec2(0f, 0f)
-    var closedTexture = TextureRegion()
-    var openTexture = TextureRegion()
-    var open = false
-    var facing = Facing.EAST
-    var id = 0
+    var texture = TextureRegion()
 
     override fun reset() {
         position.set(0f, 0f)
-        closedTexture = TextureRegion()
-        openTexture = TextureRegion()
-        open = false
-        facing = Facing.EAST
-        id = 0
+        texture = TextureRegion()
     }
 
     companion object {
-        val mapper = mapperFor<DoorComponent>()
+        val mapper = mapperFor<FloorComponent>()
     }
-}
-
-enum class Facing {
-    SOUTH, EAST, NORTH, WEST
 }

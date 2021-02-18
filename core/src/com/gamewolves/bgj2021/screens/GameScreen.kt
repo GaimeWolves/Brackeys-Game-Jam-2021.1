@@ -12,9 +12,16 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.maps.MapGroupLayer
+import com.badlogic.gdx.maps.objects.PolylineMapObject
+import com.badlogic.gdx.maps.objects.RectangleMapObject
+import com.badlogic.gdx.maps.tiled.TiledMap
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer
+import com.badlogic.gdx.maps.tiled.tiles.AnimatedTiledMapTile
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
@@ -28,20 +35,28 @@ import com.gamewolves.bgj2021.Main
 import com.gamewolves.bgj2021.ecs.components.*
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.systems.*
+import com.gamewolves.bgj2021.serializable.SnakeData
 import com.gamewolves.bgj2021.ui.createSkin
+import kotlinx.coroutines.launch
 import ktx.actors.*
 import ktx.app.KtxScreen
 import ktx.ashley.entity
 import ktx.ashley.with
 import ktx.assets.async.AssetStorage
+import ktx.async.KtxAsync
 import ktx.collections.*
 import ktx.graphics.use
+import ktx.inject.register
+import ktx.log.debug
 import ktx.log.info
 import ktx.log.logger
+import ktx.math.vec2
 import ktx.scene2d.actors
 import ktx.scene2d.table
 import ktx.scene2d.textButton
+import ktx.tiled.*
 import java.util.*
+import kotlin.math.floor
 
 private val log = logger<GameScreen>()
 
@@ -208,6 +223,7 @@ class GameScreen(private val main: Main,
         addSystem(electricitySystem)
         addSystem(goalSystem)
         addSystem(CableInputSystem(this@GameScreen))
+        addSystem(FloorRenderSystem(batch, viewport, shapeRenderer))
         addSystem(WallRenderSystem(batch, viewport, shapeRenderer))
         addSystem(CableRenderSystem(batch, viewport, shapeRenderer))
         addSystem(DoorRenderSystem(batch, viewport, shapeRenderer))
@@ -218,6 +234,12 @@ class GameScreen(private val main: Main,
         addSystem(SnakeRenderSystem(batch, assetStorage["snake.atlas"], viewport, shapeRenderer))
     } }
 
+    private val map by lazy { assetStorage.loadSync<TiledMap>("levels/level_test.tmx") }
+    private val spawnPositions by lazy {
+        val json = Gdx.files.internal("levels/level_test.snake").readString()
+        SnakeData.deserialize(json)
+    }
+
     val moveSignal = Signal<Move.SnakeMove>()
     val uiPixelScale = uiViewport.worldWidth / viewport.worldWidth
     val moveHistory = Stack<Move>()
@@ -225,127 +247,13 @@ class GameScreen(private val main: Main,
     var hasWon = false
     var isPaused = false
 
-    val currentSnakes = arrayListOf<Entity>(engine.entity {
-        with<SnakeComponent> {
-            parts += arrayListOf(
-                    Vector2(27f, 9f),
-                    Vector2(27f, 8f),
-                    Vector2(27f, 7f),
-                    Vector2(27f, 6f),
-                    Vector2(27f, 5f),
-                    Vector2(27f, 4f))
-            snakeType = SnakeType.SECOND
-        }
-    }, engine.entity {
-        with<SnakeComponent> {
-            parts += arrayListOf(
-                    Vector2(5f, 9f),
-                    Vector2(5f, 8f),
-                    Vector2(5f, 7f),
-                    Vector2(5f, 6f),
-                    Vector2(5f, 5f),
-                    Vector2(5f, 4f))
-            snakeType = SnakeType.FIRST
-        }
-    })
+    val currentSnakes = arrayListOf<Entity>()
 
-    val walls = arrayListOf(
-            engine.entity { with<WallComponent> { position.set(8f, 10f) }},
-            engine.entity { with<WallComponent> { position.set(9f, 10f) }},
-            engine.entity { with<WallComponent> { position.set(11f, 10f) }},
-            engine.entity { with<WallComponent> { position.set(12f, 10f) }}
-    )
+    override fun show() {
+        generateEntities()
 
-    val doors = arrayListOf(
-            engine.entity {
-                with<DoorComponent> {
-                    position.set(10f, 10f)
-                    facing = Facing.SOUTH
-                    open = true
-                }
-            }
-    )
-
-    val buttons = arrayListOf(
-            engine.entity {
-                with<ButtonComponent> {
-                    position.set(10f, 6f)
-                }
-            }
-    )
-
-    val cables = arrayListOf(
-            engine.entity {
-                with<CableComponent> {
-                    position.set(10f, 7f)
-                }
-            },
-            engine.entity {
-                with<CableComponent> {
-                    position.set(10f, 8f)
-                }
-            },
-            engine.entity {
-                with<CableComponent> {
-                    position.set(10f, 9f)
-                }
-            }
-    )
-
-    val elecTest = arrayListOf(
-            engine.entity {
-                with<DoorComponent> {
-                    id = 1
-                    facing = Facing.SOUTH
-                    position.set(16f, 10f)
-                }
-            },
-            engine.entity {
-                with<CableComponent> {
-                    position.set(16f, 7f)
-                    id = 1
-                }
-            },
-            engine.entity {
-                with<CableComponent> {
-                    position.set(16f, 8f)
-                    id = 1
-                }
-            },
-            engine.entity {
-                with<CableComponent> {
-                    position.set(16f, 9f)
-                    id = 1
-                }
-            },
-            engine.entity {
-                with<BatteryComponent> {
-                    position.set(16f, 6f)
-                    id = 1
-                    maxCharge = 10
-                }
-            },
-            engine.entity {
-                with<PowerSourceComponent> {
-                    position.set(16f, 2f)
-                }
-            }
-    )
-
-    val goals = arrayListOf(
-            engine.entity {
-                with<GoalComponent> {
-                    position.set(8f, 2f)
-                    snakeType = SnakeType.FIRST
-                }
-            },
-            engine.entity {
-                with<GoalComponent> {
-                    position.set(10f, 2f)
-                    snakeType = SnakeType.SECOND
-                }
-            }
-    )
+        super.show()
+    }
 
     override fun resize(width: Int, height: Int) {
         viewport.update(width, height, true)
@@ -383,7 +291,7 @@ class GameScreen(private val main: Main,
             buttonSystem.setProcessing(false)
             goalSystem.setProcessing(false)
         }
-        else if (!isPaused && !snakeSystem.checkProcessing()) {
+        else if (!isPaused && !hasWon && !snakeSystem.checkProcessing()) {
             snakeSystem.setProcessing(true)
             doorSystem.setProcessing(true)
             buttonSystem.setProcessing(true)
@@ -506,6 +414,170 @@ class GameScreen(private val main: Main,
             is Move.ChargeChanged -> {
                 move.battery.charge = move.charge
                 revertHistory()
+            }
+        }
+    }
+
+    private fun generateEntities() {
+        val batteryCharges = arrayListOf<Pair<Vector2, Int>>()
+        val goals = arrayListOf<Pair<Vector2, SnakeType>>()
+
+        map.layer("entity-data").run {
+            this.objects.forEach {
+                when {
+                    it.containsProperty("snakeType") -> {
+                        val polyLineObj = it as PolylineMapObject
+                        val verticesFloats = polyLineObj.polyline.transformedVertices
+                        val parts = arrayListOf<Vector2>()
+                        for (i in 0 until verticesFloats.size / 2)
+                            parts += vec2(floor(verticesFloats[i * 2] / map.tileWidth), floor(verticesFloats[i * 2 + 1] / map.tileHeight))
+
+                        val snakeType = SnakeType.valueOf(it.property("snakeType", "FIRST"))
+
+                        engine.entity {
+                            with<SnakeComponent> {
+                                this.parts += parts
+                                this.snakeType = snakeType
+                            }
+                        }
+                    }
+                    it.containsProperty("maxCharge") -> {
+                        val pos = vec2(floor(it.x / map.tileWidth), floor(it.y / map.tileHeight))
+                        val charge = it.property("maxCharge", 10)
+
+                        batteryCharges += Pair(pos, charge)
+                    }
+                    it.containsProperty("goalType") -> {
+                        val pos = vec2(floor(it.x / map.tileWidth), floor(it.y / map.tileHeight))
+                        val snakeType = SnakeType.valueOf(it.property("goalType", "FIRST"))
+
+                        goals += Pair(pos, snakeType)
+                    }
+                }
+            }
+        }
+
+
+        fun loadNormalLayer(name: String, creator: (Int, Int, TiledMapTileLayer.Cell) -> Unit) {
+            (map.layer(name) as TiledMapTileLayer).run {
+                for (x in 0 until this.width) {
+                    for (y in 0 until this.height) {
+                        val cell = this.getCell(x, y)
+                        if (cell != null)
+                            creator(x, y, cell)
+                    }
+                }
+            }
+        }
+
+        fun loadEntityLayer(name: String, id: Int, creator: (Int, Int, TiledMapTileLayer.Cell) -> Unit) {
+            (map.layer(id.toString()) as MapGroupLayer).run {
+                (this.layers.find { it.name == name } as TiledMapTileLayer?)?.let { layer ->
+                    for (x in 0 until layer.width) {
+                        for (y in 0 until layer.height) {
+                            val cell = layer.getCell(x, y)
+                            if (cell != null)
+                                creator(x, y, cell)
+                        }
+                    }
+                }
+            }
+        }
+
+        // create walls
+        loadNormalLayer("walls") { x, y, cell ->
+            engine.entity {
+                with<WallComponent> {
+                    position.set(x.toFloat(), y.toFloat())
+                    texture.setRegion(cell.tile.textureRegion)
+                }
+            }
+        }
+
+        // create floor
+        loadNormalLayer("floor") { x, y, cell ->
+            engine.entity {
+                with<FloorComponent> {
+                    position.set(x.toFloat(), y.toFloat())
+                    texture.setRegion(cell.tile.textureRegion)
+                }
+            }
+        }
+
+        // create goals
+        loadNormalLayer("goals") { x, y, cell ->
+            engine.entity {
+                with<GoalComponent> {
+                    position.set(x.toFloat(), y.toFloat())
+                    snakeType = goals.find { (pos, _) -> pos == position }?.second!!
+                    texture.setRegion(cell.tile.textureRegion)
+                }
+            }
+        }
+
+        // load power sources
+        loadNormalLayer("sources") { x, y, cell ->
+            engine.entity {
+                with<PowerSourceComponent> {
+                    position.set(x.toFloat(), y.toFloat())
+                    texture.setRegion(cell.tile.textureRegion)
+                }
+            }
+        }
+
+        // load grouped entities
+        val idLayerCount = map.layers.size() - 5 // minus normal layer count
+        for (layerId in 0 until idLayerCount) {
+            loadEntityLayer("buttons", layerId) { x, y, cell ->
+                engine.entity {
+                    with<ButtonComponent> {
+                        position.set(x.toFloat(), y.toFloat())
+                        id = layerId
+                        texture.setRegion(cell.tile.textureRegion)
+                    }
+                }
+            }
+
+            loadEntityLayer("doors", layerId) { x, y, cell ->
+                engine.entity {
+                    with<DoorComponent> {
+                        position.set(x.toFloat(), y.toFloat())
+                        id = layerId
+                        facing = Facing.values()[cell.rotation]
+
+                        val frames = (cell.tile as AnimatedTiledMapTile).frameTiles.map { it.textureRegion }
+                        closedTexture.setRegion(frames[0])
+                        openTexture.setRegion(frames[1])
+                    }
+                }
+            }
+
+            loadEntityLayer("cables", layerId) { x, y, cell ->
+                engine.entity {
+                    with<CableComponent> {
+                        position.set(x.toFloat(), y.toFloat())
+                        id = layerId
+                        texture.setRegion(cell.tile.textureRegion)
+                        rotation = cell.rotation.toFloat() * 90f + 90f
+                        flipX = cell.flipHorizontally
+                        flipY = cell.flipVertically
+                    }
+                }
+            }
+
+            loadEntityLayer("batteries", layerId) { x, y, cell ->
+                engine.entity {
+
+                    with<BatteryComponent> {
+                        position.set(x.toFloat(), y.toFloat())
+                        id = layerId
+                        maxCharge = batteryCharges.find { (pos, _) -> pos == position }?.second!!
+
+                        val frames = (cell.tile as AnimatedTiledMapTile).frameTiles.map { it.textureRegion }
+                        emptyTexture.setRegion(frames[0])
+                        chargedTexture.setRegion(frames[1])
+                    }
+                }
             }
         }
     }

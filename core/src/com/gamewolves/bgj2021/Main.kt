@@ -1,11 +1,12 @@
 package com.gamewolves.bgj2021
 
-import com.badlogic.ashley.core.PooledEngine
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.gamewolves.bgj2021.ecs.systems.SnakeRenderSystem
+import com.badlogic.gdx.maps.tiled.TiledMap
+import com.badlogic.gdx.maps.tiled.TmxMapLoader
 import com.gamewolves.bgj2021.screens.GameScreen
 import kotlinx.coroutines.launch
 import ktx.app.KtxGame
@@ -14,6 +15,7 @@ import ktx.assets.async.AssetStorage
 import ktx.async.KtxAsync
 import ktx.inject.Context
 import ktx.inject.register
+
 
 class Main : KtxGame<KtxScreen>() {
     val batch by lazy { SpriteBatch() }
@@ -24,6 +26,8 @@ class Main : KtxGame<KtxScreen>() {
     private val context = Context()
 
     override fun create() {
+        assetStorage.setLoader(".tmx") { TmxMapLoader(InternalFileHandleResolver()) }
+
         KtxAsync.initiate()
         KtxAsync.launch {
             assetStorage.apply {

@@ -30,10 +30,7 @@ class DoorRenderSystem(
         allOf(DoorComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        //viewport.apply()
-        shapeRenderer.color = Color.BLUE
-        Gdx.gl.glLineWidth(1f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
+        batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }
     }
@@ -42,19 +39,29 @@ class DoorRenderSystem(
         val door = entity[DoorComponent.mapper]
         require(door != null) { "Entity $entity must have a DoorComponent." }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.O))
-            door.open = !door.open
-
-        val width = when (door.open) {
-            true -> 0.1f
-            false -> 1f
+        val angle = when (door.facing) {
+            Facing.EAST -> 90f
+            Facing.WEST -> 270f
+            Facing.NORTH -> 180f
+            Facing.SOUTH -> 0f
         }
 
-        when (door.facing) {
-            Facing.EAST -> shapeRenderer.rect(door.position.x + 0.9f, door.position.y, 0.1f, width)
-            Facing.WEST -> shapeRenderer.rect(door.position.x, door.position.y, 0.1f, width)
-            Facing.NORTH -> shapeRenderer.rect(door.position.x, door.position.y + 0.9f, width, 0.1f)
-            Facing.SOUTH -> shapeRenderer.rect(door.position.x, door.position.y, width, 0.1f)
+        val texture = when (door.open) {
+            true -> door.openTexture
+            false -> door.closedTexture
         }
+
+        batch.draw(
+                texture,
+                door.position.x,
+                door.position.y,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+                1f,
+                1f,
+                angle
+        )
     }
 }

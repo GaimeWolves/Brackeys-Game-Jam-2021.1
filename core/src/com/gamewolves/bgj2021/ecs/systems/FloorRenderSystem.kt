@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.gamewolves.bgj2021.ecs.components.FloorComponent
 import com.gamewolves.bgj2021.ecs.components.SnakeComponent
 import com.gamewolves.bgj2021.ecs.components.WallComponent
 import ktx.ashley.allOf
@@ -19,12 +20,12 @@ import ktx.math.component1
 import ktx.math.component2
 import kotlin.math.sign
 
-class WallRenderSystem(
+class FloorRenderSystem(
         private val batch: SpriteBatch,
         private val viewport: Viewport,
         private val shapeRenderer: ShapeRenderer
 ) : IteratingSystem(
-        allOf(WallComponent::class).get()
+        allOf(FloorComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
         batch.use(viewport.camera.combined) {
@@ -33,9 +34,9 @@ class WallRenderSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val wall = entity[WallComponent.mapper]
-        require(wall != null) { "Entity $entity must have a WallComponent." }
+        val floor = entity[FloorComponent.mapper]
+        require(floor != null) { "Entity $entity must have a FloorComponent." }
 
-        batch.draw(wall.texture, wall.position.x, wall.position.y, 1f, 1f)
+        batch.draw(floor.texture, floor.position.x, floor.position.y, 1f, 1f)
     }
 }

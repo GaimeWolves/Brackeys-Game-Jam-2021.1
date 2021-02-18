@@ -77,5 +77,6 @@ project(":core") {
         api "io.github.libktx:ktx-scene2d:$ktxVersion"
         api "io.github.libktx:ktx-style:$ktxVersion"
         api "io.github.libktx:ktx-actors:$ktxVersion"
+        api "io.github.libktx:ktx-tiled:$ktxVersion"
     }
 }

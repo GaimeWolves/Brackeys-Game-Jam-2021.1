@@ -23,9 +23,7 @@ class PowerSourceRenderSystem(
         allOf(PowerSourceComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        //viewport.apply()
-        Gdx.gl.glLineWidth(3f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
+        batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }
     }
@@ -34,16 +32,6 @@ class PowerSourceRenderSystem(
         val source = entity[PowerSourceComponent.mapper]
         require(source != null) { "Entity $entity must have a PowerSourceComponent." }
 
-        shapeRenderer.color = Color.RED
-        shapeRenderer.line(source.position.x + 0.2f, source.position.y + 0.75f, source.position.x + 0.8f, source.position.y + 0.75f)
-        shapeRenderer.line(source.position.x + 0.2f, source.position.y + 0.25f, source.position.x + 0.8f, source.position.y + 0.25f)
-
-        shapeRenderer.color = Color.YELLOW
-        shapeRenderer.line(
-                source.position.x + 0.5f + Random.nextFloat() - 0.5f,
-                source.position.y + 0.5f + Random.nextFloat() - 0.5f,
-                source.position.x + 0.5f + Random.nextFloat() - 0.5f,
-                source.position.y + 0.5f + Random.nextFloat() - 0.5f
-        )
+        batch.draw(source.texture, source.position.x, source.position.y, 1f, 1f)
     }
 }

@@ -21,9 +21,7 @@ class CableRenderSystem(
         allOf(CableComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        //viewport.apply()
-        Gdx.gl.glLineWidth(3f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
+        batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }
     }
@@ -32,11 +30,37 @@ class CableRenderSystem(
         val cable = entity[CableComponent.mapper]
         require(cable != null) { "Entity $entity must have a CableComponent." }
 
+        val oldColor = batch.color.cpy()
+
         when (cable.active) {
-            true -> shapeRenderer.color = Color.CYAN
-            false -> shapeRenderer.color = Color.BLUE
+            false -> batch.color = Color(0f, 0f, 1f, 1f)
+            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f)
         }
 
-        shapeRenderer.x(cable.position.x + 0.5f, cable.position.y + 0.5f, 0.3f)
+        val scaleX = when (cable.flipX) {
+            true -> -1f
+            false -> 1f
+        }
+
+        val scaleY = when (cable.flipY) {
+            true -> -1f
+            false -> 1f
+        }
+
+        batch.draw(
+                cable.texture,
+                cable.position.x,
+                cable.position.y,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+                scaleX,
+                scaleY,
+                cable.rotation,
+                true
+        )
+
+        batch.color = oldColor
     }
 }

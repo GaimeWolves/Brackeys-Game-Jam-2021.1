@@ -20,9 +20,7 @@ class ButtonRenderSystem(
         allOf(ButtonComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        //viewport.apply()
-        Gdx.gl.glLineWidth(3f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
+        batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }
     }
@@ -31,11 +29,15 @@ class ButtonRenderSystem(
         val button = entity[ButtonComponent.mapper]
         require(button != null) { "Entity $entity must have a ButtonComponent." }
 
+        val oldColor = batch.color.cpy()
+
         when (button.pressed) {
-            true -> shapeRenderer.color = Color.CYAN
-            false -> shapeRenderer.color = Color.BLUE
+            false -> batch.color = Color(0f, 0f, 1f, 1f)
+            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f)
         }
 
-        shapeRenderer.rect(button.position.x + 0.1f, button.position.y + 0.1f, 0.8f, 0.8f)
+        batch.draw(button.texture, button.position.x, button.position.y, 1f, 1f)
+
+        batch.color = oldColor
     }
 }

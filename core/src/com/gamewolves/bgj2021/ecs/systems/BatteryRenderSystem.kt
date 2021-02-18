@@ -30,45 +30,31 @@ class BatteryRenderSystem(
 ) : IteratingSystem(
         allOf(BatteryComponent::class).get()
 ) {
+    override fun update(deltaTime: Float) {
+        batch.use(viewport.camera.combined) {
+            super.update(deltaTime)
+        }
+    }
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val battery = entity[BatteryComponent.mapper]
         require(battery != null) { "Entity $entity must have a BatteryComponent." }
 
-        //viewport.apply()
-        Gdx.gl.glLineWidth(3f)
-        shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {
-            shapeRenderer.color = Color.RED
-            shapeRenderer.triangle(
-                    battery.position.x + 0.2f,
-                    battery.position.y + 0.2f,
-                    battery.position.x + 0.8f,
-                    battery.position.y + 0.2f,
-                    battery.position.x + 0.5f,
-                    battery.position.y + 0.8f
-            )
-
-            if (battery.charge > 0) {
-                shapeRenderer.color = Color.YELLOW
-                shapeRenderer.line(
-                        battery.position.x + 0.5f + Random.nextFloat() - 0.5f,
-                        battery.position.y + 0.5f + Random.nextFloat() - 0.5f,
-                        battery.position.x + 0.5f + Random.nextFloat() - 0.5f,
-                        battery.position.y + 0.5f + Random.nextFloat() - 0.5f
-                )
-            }
+        when (battery.charge) {
+            0 -> batch.draw(battery.emptyTexture, battery.position.x, battery.position.y, 1f, 1f)
+            else -> batch.draw(battery.chargedTexture, battery.position.x, battery.position.y, 1f, 1f)
         }
 
         //if (battery.charge > 0) {
-        //    val uiPosition = battery.position.cpy().scl(game.pixelScale)
+        //    val uiPosition = battery.position.cpy().scl(game.uiPixelScale)
         //
-        //    uiViewport.apply()
         //    batch.use(uiViewport.camera.combined) {
         //        font.draw(
         //                batch,
         //                battery.charge.toString(),
-        //                uiPosition.x - game.pixelScale,
-        //                uiPosition.y + game.pixelScale * 1f,
-        //                game.pixelScale * 3,
+        //                uiPosition.x - game.uiPixelScale,
+        //                uiPosition.y + game.uiPixelScale,
+        //                game.uiPixelScale * 3,
         //                Align.center,
         //                false
         //        )
