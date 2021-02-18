@@ -1,5 +1,6 @@
 package com.gamewolves.bgj2021.ecs.systems
 
+import PowerSourceComponent
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.Gdx
@@ -12,13 +13,14 @@ import com.gamewolves.bgj2021.ecs.components.CableComponent
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
+import kotlin.random.Random
 
-class CableRenderSystem(
+class PowerSourceRenderSystem(
         private val batch: SpriteBatch,
         private val viewport: Viewport,
         private val shapeRenderer: ShapeRenderer
 ) : IteratingSystem(
-        allOf(CableComponent::class).get()
+        allOf(PowerSourceComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
         //viewport.apply()
@@ -29,14 +31,19 @@ class CableRenderSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val cable = entity[CableComponent.mapper]
-        require(cable != null) { "Entity $entity must have a CableComponent." }
+        val source = entity[PowerSourceComponent.mapper]
+        require(source != null) { "Entity $entity must have a PowerSourceComponent." }
 
-        when (cable.active) {
-            true -> shapeRenderer.color = Color.CYAN
-            false -> shapeRenderer.color = Color.BLUE
-        }
+        shapeRenderer.color = Color.RED
+        shapeRenderer.line(source.position.x + 0.2f, source.position.y + 0.75f, source.position.x + 0.8f, source.position.y + 0.75f)
+        shapeRenderer.line(source.position.x + 0.2f, source.position.y + 0.25f, source.position.x + 0.8f, source.position.y + 0.25f)
 
-        shapeRenderer.x(cable.position.x + 0.5f, cable.position.y + 0.5f, 0.3f)
+        shapeRenderer.color = Color.YELLOW
+        shapeRenderer.line(
+                source.position.x + 0.5f + Random.nextFloat() - 0.5f,
+                source.position.y + 0.5f + Random.nextFloat() - 0.5f,
+                source.position.x + 0.5f + Random.nextFloat() - 0.5f,
+                source.position.y + 0.5f + Random.nextFloat() - 0.5f
+        )
     }
 }

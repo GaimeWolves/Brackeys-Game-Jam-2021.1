@@ -1,5 +1,6 @@
 package com.gamewolves.bgj2021.ecs.systems
 
+import BatteryComponent
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
@@ -27,6 +28,19 @@ class DoorInputSystem(
                     if (button.id == door.id && !button.pressed) {
                         door.open = false
                         return@forEach
+                    }
+                }
+            }
+        }
+
+        if (door.open) {
+            engine.getEntitiesFor(allOf(BatteryComponent::class).get()).forEach { batteryEntity ->
+                run {
+                    batteryEntity[BatteryComponent.mapper]?.let { battery ->
+                        if (battery.id == door.id && battery.charge == 0) {
+                            door.open = false
+                            return@forEach
+                        }
                     }
                 }
             }

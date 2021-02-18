@@ -8,16 +8,17 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
+import com.gamewolves.bgj2021.ecs.components.GoalComponent
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
 
-class ButtonRenderSystem(
+class GoalRenderSystem(
         private val batch: SpriteBatch,
         private val viewport: Viewport,
         private val shapeRenderer: ShapeRenderer
 ) : IteratingSystem(
-        allOf(ButtonComponent::class).get()
+        allOf(GoalComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
         //viewport.apply()
@@ -28,14 +29,15 @@ class ButtonRenderSystem(
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {
-        val button = entity[ButtonComponent.mapper]
-        require(button != null) { "Entity $entity must have a ButtonComponent." }
+        val goal = entity[GoalComponent.mapper]
+        require(goal != null) { "Entity $entity must have a GoalComponent." }
 
-        when (button.pressed) {
-            true -> shapeRenderer.color = Color.CYAN
-            false -> shapeRenderer.color = Color.BLUE
+        when (goal.snakeType) {
+            SnakeType.FIRST -> shapeRenderer.color = Color.GREEN
+            SnakeType.SECOND -> shapeRenderer.color = Color.BLUE
+            SnakeType.DOUBLE -> shapeRenderer.color = Color.BLUE
         }
 
-        shapeRenderer.rect(button.position.x + 0.1f, button.position.y + 0.1f, 0.8f, 0.8f)
+        shapeRenderer.circle(goal.position.x + 0.5f, goal.position.y + 0.5f, 0.45f)
     }
 }

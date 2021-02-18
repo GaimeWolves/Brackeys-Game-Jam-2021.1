@@ -27,7 +27,7 @@ class WallRenderSystem(
         allOf(WallComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        viewport.apply()
+        //viewport.apply()
         shapeRenderer.color = Color.YELLOW
         Gdx.gl.glLineWidth(1f)
         shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {

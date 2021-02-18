@@ -30,7 +30,7 @@ class DoorRenderSystem(
         allOf(DoorComponent::class).get()
 ) {
     override fun update(deltaTime: Float) {
-        viewport.apply()
+        //viewport.apply()
         shapeRenderer.color = Color.BLUE
         Gdx.gl.glLineWidth(1f)
         shapeRenderer.use(ShapeRenderer.ShapeType.Line, viewport.camera.combined) {

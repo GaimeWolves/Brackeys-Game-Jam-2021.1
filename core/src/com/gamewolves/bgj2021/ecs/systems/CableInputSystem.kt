@@ -1,5 +1,6 @@
 package com.gamewolves.bgj2021.ecs.systems
 
+import BatteryComponent
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
@@ -27,6 +28,19 @@ class CableInputSystem(
                     if (button.id == cable.id && !button.pressed) {
                         cable.active = false
                         return@forEach
+                    }
+                }
+            }
+        }
+
+        if (cable.active) {
+            engine.getEntitiesFor(allOf(BatteryComponent::class).get()).forEach { batteryEntity ->
+                run {
+                    batteryEntity[BatteryComponent.mapper]?.let { battery ->
+                        if (battery.id == cable.id && battery.charge == 0) {
+                            cable.active = false
+                            return@forEach
+                        }
                     }
                 }
             }

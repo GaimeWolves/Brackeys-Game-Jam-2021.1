@@ -1,5 +1,6 @@
 package com.gamewolves.bgj2021.ecs.systems
 
+import PowerSourceComponent
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.Gdx
@@ -62,12 +63,12 @@ class SnakeInputSystem(
     }
 
     private fun moveSnake(snake: SnakeComponent, direction: Direction, reversed: Boolean) {
-        var oldPosition = when (reversed) {
+        val position = when (reversed) {
             true -> snake.parts.last().cpy()
             false -> snake.parts.first().cpy()
         }
 
-        var newPosition = oldPosition.cpy()
+        var newPosition = position.cpy()
 
         when(direction) {
             Direction.UP -> newPosition.y += 1f
@@ -76,13 +77,15 @@ class SnakeInputSystem(
             Direction.RIGHT -> newPosition.x += 1f
         }
 
-        if (!checkCollisions(newPosition, oldPosition))
+        if (!checkCollisions(newPosition, position))
             return
 
-        when (reversed) {
-            true -> game.moveHistory.push(Move.SnakeMove(snake, snake.parts.first().cpy(), reversed))
-            false -> game.moveHistory.push(Move.SnakeMove(snake, snake.parts.last().cpy(), reversed))
+        val move = when (reversed) {
+            true -> Move.SnakeMove(snake.snakeType, snake.parts.first().cpy(), reversed)
+            false -> Move.SnakeMove(snake.snakeType, snake.parts.last().cpy(), reversed)
         }
+
+        game.moveHistory.push(move)
 
         if (reversed) {
             snake.parts.asReversed().replaceAll { oldPosition ->
@@ -100,19 +103,34 @@ class SnakeInputSystem(
         }
 
         checkRecombination()
+        checkPowered(snake)
+
+        // Signal a move to systems that should only update every move
+        game.moveSignal.dispatch(move)
     }
 
     fun revertSnake(move: Move) {
         if (move is Move.SnakeMove) {
+            val entity = entities.find { entity ->
+                val snake = entity[SnakeComponent.mapper]
+                require(snake != null) { "Entity $entity must have a SnakeComponent.." }
+
+                snake.snakeType == move.snakeType
+            }
+
+            require(entity != null) { "Something went wrong in the moveHistory at $move" }
+            val snake = entity[SnakeComponent.mapper]
+            require(snake != null) { "Entity $entity must have a SnakeComponent.." }
+
             if (move.reversed) {
-                move.snake.parts.replaceAll { oldPosition ->
+                snake.parts.replaceAll { oldPosition ->
                     val tmp = move.position.cpy()
                     move.position = oldPosition
                     tmp
                 }
             }
             else {
-                move.snake.parts.asReversed().replaceAll { oldPosition ->
+                snake.parts.asReversed().replaceAll { oldPosition ->
                     val tmp = move.position.cpy()
                     move.position = oldPosition
                     tmp
@@ -179,6 +197,25 @@ class SnakeInputSystem(
         return true
     }
 
+    private fun checkPowered(snake: SnakeComponent) {
+        val oldPowered = snake.powered
+        snake.powered = false
+
+        engine.getEntitiesFor(allOf(PowerSourceComponent::class).get()).forEach { sourceEntity ->
+            run {
+                sourceEntity[PowerSourceComponent.mapper]?.let { source ->
+                    if (snake.parts.contains(source.position)) {
+                        snake.powered = true
+                        return@forEach
+                    }
+                }
+            }
+        }
+
+        if (oldPowered != snake.powered)
+            game.moveHistory.push(Move.PoweredChanged(snake, oldPowered))
+    }
+
     private fun checkRecombination() {
         if (entities.size() != 2) // We need separated snakes
             return
@@ -202,6 +239,12 @@ class SnakeInputSystem(
         if (!checkDoorCollisions(tail1, tail2))
             return
 
+        when (snakeComponent1.snakeType) {
+            SnakeType.FIRST -> game.moveHistory.push(Move.Recombination(snakeComponent1.parts.toTypedArray(), snakeComponent2.parts.toTypedArray()))
+            SnakeType.SECOND -> game.moveHistory.push(Move.Recombination(snakeComponent2.parts.toTypedArray(), snakeComponent1.parts.toTypedArray()))
+            else -> error("There should not be a double snake here")
+        }
+
         val newParts = arrayListOf<Vector2>()
         newParts += when (snakeComponent1.snakeType) {
             SnakeType.FIRST -> snakeComponent1.parts + snakeComponent2.parts.asReversed()
@@ -214,12 +257,6 @@ class SnakeInputSystem(
                 parts += newParts
                 snakeType = SnakeType.DOUBLE
             }
-        }
-
-        when (snakeComponent1.snakeType) {
-            SnakeType.FIRST -> game.moveHistory.push(Move.Recombination(snakeComponent1.parts.toTypedArray(), snakeComponent2.parts.toTypedArray()))
-            SnakeType.SECOND -> game.moveHistory.push(Move.Recombination(snakeComponent2.parts.toTypedArray(), snakeComponent1.parts.toTypedArray()))
-            else -> error("There should not be a double snake here")
         }
 
         engine.removeEntity(snake1)

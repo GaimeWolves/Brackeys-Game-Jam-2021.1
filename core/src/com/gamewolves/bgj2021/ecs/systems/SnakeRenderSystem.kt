@@ -30,7 +30,7 @@ class SnakeRenderSystem(
     private val cornerTexture = snakeAtlas.findRegion("corner")
 
     override fun update(deltaTime: Float) {
-        viewport.apply()
+        //viewport.apply()
         batch.use(viewport.camera.combined) {
             super.update(deltaTime)
         }

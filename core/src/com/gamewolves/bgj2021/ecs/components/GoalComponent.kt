@@ -5,19 +5,20 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.Pool
 import com.gamewolves.bgj2021.ecs.systems.SnakeType
 import ktx.ashley.mapperFor
+import ktx.math.vec2
 
-class SnakeComponent : Component, Pool.Poolable {
-    val parts = arrayListOf<Vector2>()
+class GoalComponent : Component, Pool.Poolable {
+    val position = vec2(0f, 0f)
     var snakeType = SnakeType.FIRST
-    var powered = false
+    var reached = false
 
     override fun reset() {
-        parts.clear()
+        position.set(0f, 0f)
         snakeType = SnakeType.FIRST
-        powered = false
+        reached = false
     }
 
     companion object {
-        val mapper = mapperFor<SnakeComponent>()
+        val mapper = mapperFor<GoalComponent>()
     }
 }
