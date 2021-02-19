@@ -33,8 +33,8 @@ class CableRenderSystem(
         val oldColor = batch.color.cpy()
 
         when (cable.active) {
-            false -> batch.color = Color(0f, 0f, 1f, 1f)
-            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f)
+            false -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
+            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f).mul(batch.color)
         }
 
         val scaleX = when (cable.flipX) {

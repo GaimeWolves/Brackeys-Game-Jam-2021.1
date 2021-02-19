@@ -7,6 +7,7 @@ import com.badlogic.ashley.core.PooledEngine
 import com.badlogic.ashley.signals.Signal
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
@@ -28,15 +29,20 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.actions.Actions.*
 import com.badlogic.gdx.scenes.scene2d.actions.SequenceAction
+import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.gamewolves.bgj2021.Main
+import com.gamewolves.bgj2021.assets.ShaderProgramAsset
+import com.gamewolves.bgj2021.assets.TextureAtlasAsset
+import com.gamewolves.bgj2021.assets.TiledMapAssets
 import com.gamewolves.bgj2021.ecs.components.*
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.systems.*
-import com.gamewolves.bgj2021.serializable.SnakeData
-import com.gamewolves.bgj2021.ui.createSkin
+import com.gamewolves.bgj2021.ui.LabelSkin
+import com.gamewolves.bgj2021.util.unlockLevel
 import kotlinx.coroutines.launch
 import ktx.actors.*
 import ktx.app.KtxScreen
@@ -45,170 +51,43 @@ import ktx.ashley.with
 import ktx.assets.async.AssetStorage
 import ktx.async.KtxAsync
 import ktx.collections.*
+import ktx.graphics.color
 import ktx.graphics.use
-import ktx.inject.register
 import ktx.log.debug
 import ktx.log.info
 import ktx.log.logger
 import ktx.math.vec2
-import ktx.scene2d.actors
-import ktx.scene2d.table
-import ktx.scene2d.textButton
+import ktx.scene2d.*
 import ktx.tiled.*
 import java.util.*
 import kotlin.math.floor
 
 private val log = logger<GameScreen>()
 
-class GameScreen(private val main: Main,
-                 private val assetStorage: AssetStorage,
-                 private val batch: SpriteBatch,
-                 private val shapeRenderer: ShapeRenderer,
-                 private val font: BitmapFont) : KtxScreen {
-    private val maxBlurRadius = 3f
-    private val defaultShader = SpriteBatch.createDefaultShader()
+const val MAX_BLUR_RADIUS = 3f
 
-    private val viewport = FitViewport(32f,18f).apply { apply() }
-    private val uiViewport = FitViewport(960f, 540f).apply { apply() }
+class GameScreen(
+        val main: Main,
+        private val id: Int
+) : Screen(main) {
+    private val map by lazy { assetStorage[TiledMapAssets.getLevelById(id)] }
+    private val mapLabels = arrayListOf<Label>()
 
-    private val blurShader by lazy {
-        val vertexShaderSource = Gdx.files.internal("shaders/blur.vert").readString()
-        val fragmentShaderSource = Gdx.files.internal("shaders/blur.frag").readString()
-        val shader = ShaderProgram(vertexShaderSource, fragmentShaderSource)
+    private val viewport = FitViewport(map.width.toFloat(), map.height.toFloat()).apply { apply() }
+    private val uiViewport = FitViewport(960f, 960f * (map.height.toFloat() / map.width.toFloat())).apply { apply() }
 
-        if (shader.log.isNotEmpty())
-            log.info { shader.log }
+    private val blurShader by lazy { assetStorage[ShaderProgramAsset.BLUR.descriptor] }
 
-        shader.use {
-            shader.setUniformf("dir", 0f, 0f)
-            shader.setUniformf("resolution", Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-            shader.setUniformf("radius", 0f)
-        }
-
-        return@lazy shader
-    }
-    private val fboA by lazy { FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.width, Gdx.graphics.height, false, false) }
-    private val fboB by lazy { FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.width, Gdx.graphics.height, false, false) }
-    private var blurRadius = maxBlurRadius
+    private lateinit var fboA: FrameBuffer
+    private lateinit var fboB: FrameBuffer
+    private var blurRadius = MAX_BLUR_RADIUS
 
     private lateinit var pauseButton: Table
     private lateinit var pauseMenu: Table
     private lateinit var levelCompleteMenu: Table
+    private lateinit var snakeDiedLabel: Label
 
-    private val stage by lazy { Stage(uiViewport, batch).apply {
-        Gdx.input.inputProcessor = this
-        createSkin(font)
-
-        this.actors {
-            lateinit var hidePauseMenuAction: SequenceAction
-            lateinit var showPauseMenuAction: SequenceAction
-            lateinit var hidePauseButtonAction: SequenceAction
-            lateinit var showPauseButtonAction: SequenceAction
-
-            fun rebuildActions() {
-                hidePauseMenuAction = Actions.run { pauseMenu.touchable = Touchable.disabled } +
-                        alpha(1f) +
-                        moveTo(0f, 0f) +
-                        (fadeOut(0.5f) / moveBy(0f, -5f, 0.5f)) +
-                        Actions.run { pauseMenu.isVisible = false }
-                showPauseMenuAction = Actions.run { pauseMenu.isVisible = true } +
-                        alpha(0f) +
-                        moveTo(0f, -5f) +
-                        (fadeIn(0.5f) / moveBy(0f, 5f, 0.5f)) +
-                        Actions.run { pauseMenu.touchable = Touchable.enabled }
-
-                hidePauseButtonAction = Actions.run { pauseButton.touchable = Touchable.disabled } +
-                        alpha(1f) +
-                        moveTo(0f, 0f) +
-                        (fadeOut(0.5f) / moveBy(0f, 5f, 0.5f)) +
-                        Actions.run { pauseButton.isVisible = false }
-                showPauseButtonAction = Actions.run { pauseButton.isVisible = true } +
-                        alpha(0f) +
-                        moveTo(0f, 5f) +
-                        (fadeIn(0.5f) / moveBy(0f, -5f, 0.5f)) +
-                        Actions.run { pauseButton.touchable = Touchable.enabled }
-            }
-            pauseButton = table {
-                align(Align.topRight)
-                defaults().top().right().padTop(5f).padRight(5f)
-
-                textButton("Pause") {
-                    onClick {
-                        isPaused = true
-
-                        rebuildActions()
-
-                        pauseMenu += showPauseMenuAction
-                        pauseButton += hidePauseButtonAction
-                    }
-                }
-
-                setFillParent(true)
-                pack()
-            }
-            pauseMenu = table {
-                defaults().fillX().center()
-
-                textButton("Continue") { cell ->
-                    cell.padLeft(10f).padRight(10f)
-
-                    onClick {
-                        isPaused = false
-
-                        rebuildActions()
-
-                        pauseButton += showPauseButtonAction
-                        pauseMenu += hidePauseMenuAction
-                    }
-                }
-
-                textButton("Restart") { cell ->
-                    cell.padLeft(10f).padRight(10f)
-
-                    onClick {
-                        while (!moveHistory.empty())
-                            revertHistory()
-
-                        isPaused = false
-
-                        rebuildActions()
-
-                        pauseButton += showPauseButtonAction
-                        pauseMenu += hidePauseMenuAction
-                    }
-                }
-
-                textButton("Exit") {
-                    onClick { dispose() }
-                }
-
-                isVisible = false
-                touchable = Touchable.disabled
-                setFillParent(true)
-                pack()
-            }
-            levelCompleteMenu = table {
-                defaults().fillX().center()
-
-                textButton("Next level") { cell ->
-                    cell.padLeft(10f).padRight(10f)
-
-                    onClick { dispose() }
-                }
-                textButton("Exit") { cell ->
-                    cell.padLeft(10f).padRight(10f)
-
-                    onClick { dispose() }
-                }
-
-                isVisible = false
-                touchable = Touchable.disabled
-
-                setFillParent(true)
-                pack()
-            }
-        }
-    } }
+    private val stage by lazy { Stage(uiViewport, batch).apply { Gdx.input.inputProcessor = this } }
 
     private val doorSystem by lazy { DoorInputSystem(this@GameScreen) }
     private val buttonSystem by lazy { ButtonInputSystem(this@GameScreen) }
@@ -231,26 +110,26 @@ class GameScreen(private val main: Main,
         addSystem(PowerSourceRenderSystem(batch, viewport, shapeRenderer))
         addSystem(BatteryRenderSystem(this@GameScreen, batch, viewport, uiViewport, font, shapeRenderer))
         addSystem(GoalRenderSystem(batch, viewport, shapeRenderer))
-        addSystem(SnakeRenderSystem(batch, assetStorage["snake.atlas"], viewport, shapeRenderer))
+        addSystem(SnakeRenderSystem(batch, assetStorage[TextureAtlasAsset.SNAKE.descriptor], viewport, shapeRenderer))
     } }
-
-    private val map by lazy { assetStorage.loadSync<TiledMap>("levels/level_test.tmx") }
-    private val spawnPositions by lazy {
-        val json = Gdx.files.internal("levels/level_test.snake").readString()
-        SnakeData.deserialize(json)
-    }
 
     val moveSignal = Signal<Move.SnakeMove>()
     val uiPixelScale = uiViewport.worldWidth / viewport.worldWidth
     val moveHistory = Stack<Move>()
 
     var hasWon = false
+    var snakeDead = false
+
     var isPaused = false
+    var isFading = false
+    var isShowing = true
+    var fadeTime = 0f
 
     val currentSnakes = arrayListOf<Entity>()
 
     override fun show() {
         generateEntities()
+        createUI()
 
         super.show()
     }
@@ -258,26 +137,76 @@ class GameScreen(private val main: Main,
     override fun resize(width: Int, height: Int) {
         viewport.update(width, height, true)
         uiViewport.update(width, height, true)
+        fboA = FrameBuffer(Pixmap.Format.RGBA8888, viewport.screenWidth, viewport.screenHeight, false, false)
+        fboB = FrameBuffer(Pixmap.Format.RGBA8888, viewport.screenWidth, viewport.screenHeight, false, false)
 
         blurShader.use {
-            blurShader.setUniformf("resolution", width.toFloat(), height.toFloat())
+            blurShader.setUniformf("resolution", viewport.screenWidth.toFloat(), viewport.screenHeight.toFloat())
         }
     }
 
     override fun render(delta: Float) {
-        if ((!hasWon && !isPaused) && blurRadius > 0f) {
-            blurRadius -= delta * maxBlurRadius
+        if (hasWon && !levelCompleteMenu.isVisible) {
+            unlockLevel(id + 1)
+
+            levelCompleteMenu += Actions.run { levelCompleteMenu.isVisible = true } +
+                    alpha(0f) +
+                    moveTo(0f, -5f) +
+                    (fadeIn(0.5f) / moveBy(0f, 5f, 0.5f)) +
+                    Actions.run { levelCompleteMenu.touchable = Touchable.enabled }
+
+            pauseButton += Actions.run { pauseButton.touchable = Touchable.disabled } +
+                    alpha(1f) +
+                    moveTo(0f, 0f) +
+                    (fadeOut(0.5f) / moveBy(0f, 5f, 0.5f)) +
+                    Actions.run { pauseButton.isVisible = false }
+        }
+
+        if ((!hasWon && !isPaused && !snakeDead) && blurRadius > 0f) {
+            blurRadius -= delta * MAX_BLUR_RADIUS
 
             if (blurRadius < 0f)
                 blurRadius = 0f
-        } else if ((hasWon || isPaused) && blurRadius < maxBlurRadius) {
-            blurRadius += delta * maxBlurRadius
+        } else if ((hasWon || isPaused || snakeDead) && blurRadius < MAX_BLUR_RADIUS) {
+            blurRadius += delta * MAX_BLUR_RADIUS
 
-            if (blurRadius > maxBlurRadius)
-                blurRadius = maxBlurRadius
+            if (blurRadius > MAX_BLUR_RADIUS)
+                blurRadius = MAX_BLUR_RADIUS
         }
 
-        applyBlur { engine.update(delta) }
+        if (snakeDead && snakeSystem.checkProcessing()) {
+            snakeDiedLabel.isVisible = true
+            snakeSystem.setProcessing(false)
+        } else if (!snakeDead && !hasWon && !isPaused && !snakeSystem.checkProcessing()) {
+            snakeDiedLabel.isVisible = false
+            snakeSystem.setProcessing(true)
+        }
+
+        if (!snakeDead && snakeDiedLabel.isVisible)
+            snakeDiedLabel.isVisible = false
+
+        if (isShowing) {
+            fadeTime += delta * 2f
+            batch.color = Color.BLACK.cpy().lerp(1f, 1f, 1f, 1f, fadeTime)
+
+            if (fadeTime > 1) {
+                batch.color = Color.WHITE.cpy()
+                fadeTime = 0f
+                isShowing = false
+            }
+        }
+
+        if (isFading) {
+            fadeTime += delta * 2f
+            batch.color = Color.WHITE.cpy().lerp(0f, 0f, 0f, 1f, fadeTime)
+        }
+
+        applyBlur {
+            engine.update(delta)
+            batch.use(uiViewport.camera.projection) {
+                mapLabels.forEach { it.draw(batch, 1f) }
+            }
+        }
 
         stage.run {
             uiViewport.apply()
@@ -304,11 +233,16 @@ class GameScreen(private val main: Main,
         }
     }
 
+    override fun dispose() {
+        stage.dispose()
+        batch.color = Color.WHITE.cpy()
+    }
+
     private fun applyBlur(mainRenderPass: () -> Unit) {
         fboA.begin()
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        batch.shader = defaultShader
+        batch.shader = ShaderProgramAsset.DEFAULT
         mainRenderPass()
         batch.flush()
         fboA.end()
@@ -380,7 +314,157 @@ class GameScreen(private val main: Main,
             )
         }
 
-        batch.shader = defaultShader
+        batch.shader = ShaderProgramAsset.DEFAULT
+    }
+
+    private fun createUI() {
+        stage.actors {
+            lateinit var hidePauseMenuAction: SequenceAction
+            lateinit var showPauseMenuAction: SequenceAction
+            lateinit var hidePauseButtonAction: SequenceAction
+            lateinit var showPauseButtonAction: SequenceAction
+
+            fun rebuildActions() {
+                hidePauseMenuAction = Actions.run { pauseMenu.touchable = Touchable.disabled } +
+                        alpha(1f) +
+                        moveTo(0f, 0f) +
+                        (fadeOut(0.5f) / moveBy(0f, -5f, 0.5f)) +
+                        Actions.run { pauseMenu.isVisible = false }
+                showPauseMenuAction = Actions.run { pauseMenu.isVisible = true } +
+                        alpha(0f) +
+                        moveTo(0f, -5f) +
+                        (fadeIn(0.5f) / moveBy(0f, 5f, 0.5f)) +
+                        Actions.run { pauseMenu.touchable = Touchable.enabled }
+
+                hidePauseButtonAction = Actions.run { pauseButton.touchable = Touchable.disabled } +
+                        alpha(1f) +
+                        moveTo(0f, 0f) +
+                        (fadeOut(0.5f) / moveBy(0f, 5f, 0.5f)) +
+                        Actions.run { pauseButton.isVisible = false }
+                showPauseButtonAction = Actions.run { pauseButton.isVisible = true } +
+                        alpha(0f) +
+                        moveTo(0f, 5f) +
+                        (fadeIn(0.5f) / moveBy(0f, -5f, 0.5f)) +
+                        Actions.run { pauseButton.touchable = Touchable.enabled }
+            }
+
+            snakeDiedLabel = label("Your snake died :(\nBackspace to undo") {
+                setAlignment(Align.center)
+                color = color(0.9f, 0.35f, 0.1f)
+                setFontScale(1.5f)
+                wrap = true
+                isVisible = false
+                setFillParent(true)
+            }
+
+            pauseButton = table {
+                defaults().expandX()
+                align(Align.topRight)
+
+                textButton("Pause") { cell ->
+                    cell.top().right().padTop(5f).padRight(5f)
+                    onClick {
+                        isPaused = true
+
+                        rebuildActions()
+
+                        pauseMenu += showPauseMenuAction
+                        pauseButton += hidePauseButtonAction
+                    }
+                }
+
+                setFillParent(true)
+                pack()
+            }
+            pauseMenu = table {
+                defaults().fillX().center()
+
+                textButton("Continue") { cell ->
+                    cell.padLeft(10f).padRight(10f)
+
+                    onClick {
+                        isPaused = false
+
+                        rebuildActions()
+
+                        pauseButton += showPauseButtonAction
+                        pauseMenu += hidePauseMenuAction
+                    }
+                }
+
+                textButton("Restart") { cell ->
+                    cell.padLeft(10f).padRight(10f)
+
+                    onClick {
+                        while (!moveHistory.empty())
+                            revertHistory()
+
+                        isPaused = false
+
+                        rebuildActions()
+
+                        pauseButton += showPauseButtonAction
+                        pauseMenu += hidePauseMenuAction
+                    }
+                }
+
+                textButton("Level select") {
+                    onClick {
+                        isFading = true
+                        stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
+                            main.removeScreen<GameScreen>()
+                            dispose()
+                            main.addScreen(LevelSelectScreen(main))
+                            main.setScreen<LevelSelectScreen>()
+                        }
+                    }
+                }
+
+                isVisible = false
+                touchable = Touchable.disabled
+                setFillParent(true)
+                pack()
+            }
+            levelCompleteMenu = table {
+                defaults().fillX().center()
+
+                if (id < TiledMapAssets.getLevelCount() - 1) {
+                    textButton("Next level") { cell ->
+                        cell.padLeft(10f).padRight(10f)
+
+                        onClick {
+                            isFading = true
+                            stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
+                                main.removeScreen<GameScreen>()
+                                dispose()
+                                main.addScreen(GameScreen(main, id + 1))
+                                main.setScreen<GameScreen>()
+                            }
+                        }
+                    }
+                }
+
+                textButton("Level select") { cell ->
+                    cell.padLeft(10f).padRight(10f)
+
+                    onClick {
+                        isFading = true
+                        stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
+                            main.removeScreen<GameScreen>()
+                            dispose()
+                            main.addScreen(LevelSelectScreen(main))
+                            main.setScreen<LevelSelectScreen>()
+                        }
+                    }
+                }
+
+                isVisible = false
+                touchable = Touchable.disabled
+
+                setFillParent(true)
+                pack()
+            }
+        }
     }
 
     private fun revertHistory() {
@@ -396,6 +480,10 @@ class GameScreen(private val main: Main,
                 revertHistory()
             }
             is Move.Separation -> {
+                snakeSystem.revertSnake(move)
+                revertHistory()
+            }
+            is Move.SnakeDied -> {
                 snakeSystem.revertSnake(move)
                 revertHistory()
             }
@@ -452,6 +540,21 @@ class GameScreen(private val main: Main,
                         val snakeType = SnakeType.valueOf(it.property("goalType", "FIRST"))
 
                         goals += Pair(pos, snakeType)
+                    }
+                    it.containsProperty("text") -> {
+                        val text = it.property("text", "sample text")
+                        val rPosX = it.x / map.tileWidth.toFloat() * uiPixelScale - uiViewport.worldWidth * 0.5f
+                        val rPosY = it.y / map.tileHeight.toFloat() * uiPixelScale - uiViewport.worldHeight * 0.5f
+                        val rWidth = it.width / map.tileWidth.toFloat() * uiPixelScale
+                        val rHeight = it.height / map.tileHeight.toFloat() * uiPixelScale
+
+                        val label = Label(text, Scene2DSkin.defaultSkin.get(LabelSkin.MAP_TEXT.name, Label.LabelStyle::class.java)).apply {
+                            setAlignment(Align.center)
+                            setPosition(rPosX, rPosY)
+                            setSize(rWidth, rHeight)
+                            layout()
+                        }
+                        mapLabels += label
                     }
                 }
             }
@@ -584,11 +687,12 @@ class GameScreen(private val main: Main,
 }
 
 sealed class Move {
-    class SnakeMove(val snakeType: SnakeType, var position: Vector2, val reversed: Boolean): Move()
+    class SnakeMove(val snakeType: SnakeType, var position: Vector2, val reversed: Boolean, val lastDirection: com.gamewolves.bgj2021.ecs.systems.Facing): Move()
     class Recombination(var oldFirstSnake: Array<Vector2>, var oldSecondSnake: Array<Vector2>): Move()
     class Separation(var oldDoubleSnake: Array<Vector2>): Move()
     class ButtonChanged(val button: ButtonComponent, val pressed: Boolean): Move()
     class DoorChanged(val door: DoorComponent, val open: Boolean): Move()
     class PoweredChanged(val snake: SnakeComponent, val powered: Boolean): Move()
     class ChargeChanged(val battery: BatteryComponent, val charge: Int): Move()
+    class SnakeDied(val snakeType: SnakeType, val snakeParts: Array<Vector2>, val lastDirection: com.gamewolves.bgj2021.ecs.systems.Facing): Move()
 }

@@ -27,6 +27,9 @@ class SnakeInputSystem(
         val snake = entity[SnakeComponent.mapper]
         require(snake != null) { "Entity $entity must have a SnakeComponent.." }
 
+        if (checkSplitting(entity, snake))
+            return
+
         when (snake.snakeType) {
             SnakeType.FIRST -> {
                 when {
@@ -45,9 +48,6 @@ class SnakeInputSystem(
                 }
             }
             SnakeType.DOUBLE -> {
-                if (checkSplitting(entity, snake))
-                    return
-
                 when {
                     Gdx.input.isKeyJustPressed(Input.Keys.W) -> moveSnake(snake, Direction.UP, false)
                     Gdx.input.isKeyJustPressed(Input.Keys.S) -> moveSnake(snake, Direction.DOWN, false)
@@ -81,11 +81,18 @@ class SnakeInputSystem(
             return
 
         val move = when (reversed) {
-            true -> Move.SnakeMove(snake.snakeType, snake.parts.first().cpy(), reversed)
-            false -> Move.SnakeMove(snake.snakeType, snake.parts.last().cpy(), reversed)
+            true -> Move.SnakeMove(snake.snakeType, snake.parts.first().cpy(), reversed, snake.lastDirection)
+            false -> Move.SnakeMove(snake.snakeType, snake.parts.last().cpy(), reversed, snake.lastDirection)
         }
 
         game.moveHistory.push(move)
+
+        snake.lastDirection = when (direction) {
+            Direction.UP -> com.gamewolves.bgj2021.ecs.systems.Facing.NORTH
+            Direction.DOWN -> com.gamewolves.bgj2021.ecs.systems.Facing.SOUTH
+            Direction.LEFT -> com.gamewolves.bgj2021.ecs.systems.Facing.WEST
+            Direction.RIGHT -> com.gamewolves.bgj2021.ecs.systems.Facing.EAST
+        }
 
         if (reversed) {
             snake.parts.asReversed().replaceAll { oldPosition ->
@@ -110,65 +117,82 @@ class SnakeInputSystem(
     }
 
     fun revertSnake(move: Move) {
-        if (move is Move.SnakeMove) {
-            val entity = entities.find { entity ->
+        when (move) {
+            is Move.SnakeMove -> {
+                val entity = entities.find { entity ->
+                    val snake = entity[SnakeComponent.mapper]
+                    require(snake != null) { "Entity $entity must have a SnakeComponent.." }
+
+                    snake.snakeType == move.snakeType
+                }
+
+                require(entity != null) { "Something went wrong in the moveHistory at $move" }
                 val snake = entity[SnakeComponent.mapper]
                 require(snake != null) { "Entity $entity must have a SnakeComponent.." }
 
-                snake.snakeType == move.snakeType
-            }
-
-            require(entity != null) { "Something went wrong in the moveHistory at $move" }
-            val snake = entity[SnakeComponent.mapper]
-            require(snake != null) { "Entity $entity must have a SnakeComponent.." }
-
-            if (move.reversed) {
-                snake.parts.replaceAll { oldPosition ->
-                    val tmp = move.position.cpy()
-                    move.position = oldPosition
-                    tmp
+                if (move.reversed) {
+                    snake.parts.replaceAll { oldPosition ->
+                        val tmp = move.position.cpy()
+                        move.position = oldPosition
+                        tmp
+                    }
+                } else {
+                    snake.parts.asReversed().replaceAll { oldPosition ->
+                        val tmp = move.position.cpy()
+                        move.position = oldPosition
+                        tmp
+                    }
                 }
+
+                snake.lastDirection = move.lastDirection
             }
-            else {
-                snake.parts.asReversed().replaceAll { oldPosition ->
-                    val tmp = move.position.cpy()
-                    move.position = oldPosition
-                    tmp
+            is Move.Recombination -> {
+                val oldSnake1 = engine.entity {
+                    with<SnakeComponent> {
+                        parts += move.oldFirstSnake
+                        snakeType = SnakeType.FIRST
+                    }
                 }
-            }
-        } else if (move is Move.Recombination) {
-            val oldSnake1 = engine.entity {
-                with<SnakeComponent> {
-                    parts += move.oldFirstSnake
-                    snakeType = SnakeType.FIRST
+
+                val oldSnake2 = engine.entity {
+                    with<SnakeComponent> {
+                        parts += move.oldSecondSnake
+                        snakeType = SnakeType.SECOND
+                    }
                 }
-            }
 
-            val oldSnake2 = engine.entity {
-                with<SnakeComponent> {
-                    parts += move.oldSecondSnake
-                    snakeType = SnakeType.SECOND
+                engine.removeEntity(game.currentSnakes.first())
+
+                game.currentSnakes.clear()
+                game.currentSnakes += oldSnake1
+                game.currentSnakes += oldSnake2
+            }
+            is Move.Separation -> {
+                val oldSnake = engine.entity {
+                    with<SnakeComponent> {
+                        parts += move.oldDoubleSnake
+                        snakeType = SnakeType.DOUBLE
+                    }
                 }
+
+                engine.removeEntity(game.currentSnakes[0])
+                engine.removeEntity(game.currentSnakes[1])
+
+                game.currentSnakes.clear()
+                game.currentSnakes += oldSnake
             }
-
-            engine.removeEntity(game.currentSnakes.first())
-
-            game.currentSnakes.clear()
-            game.currentSnakes += oldSnake1
-            game.currentSnakes += oldSnake2
-        } else if (move is Move.Separation) {
-            val oldSnake = engine.entity {
-                with<SnakeComponent> {
-                    parts += move.oldDoubleSnake
-                    snakeType = SnakeType.DOUBLE
+            is Move.SnakeDied -> {
+                val oldSnake = engine.entity {
+                    with<SnakeComponent> {
+                        parts += move.snakeParts
+                        snakeType = move.snakeType
+                        lastDirection = move.lastDirection
+                    }
                 }
+
+                game.currentSnakes += oldSnake
+                game.snakeDead = false
             }
-
-            engine.removeEntity(game.currentSnakes[0])
-            engine.removeEntity(game.currentSnakes[1])
-
-            game.currentSnakes.clear()
-            game.currentSnakes += oldSnake
         }
     }
 
@@ -270,49 +294,94 @@ class SnakeInputSystem(
         engine.getEntitiesFor(allOf(DoorComponent::class).get()).forEach { doorEntity ->
             run {
                 doorEntity[DoorComponent.mapper]?.let { door ->
+                    if (snake.parts.size == 1)
+                        return@let
+
                     if (!door.open && snake.parts.contains(door.position)) {
                         val idx = snake.parts.indexOf(door.position)
+                        val lPos = snake.parts[idx]
 
-                        if (idx != 0 && idx != snake.parts.size - 1) {
-                            val lPos = snake.parts[idx]
-                            val rPos = snake.parts[idx - 1]
-
-                            val addToFirst = when {
-                                door.facing == Facing.SOUTH && isSplit(lPos, rPos, vec2(0f, door.position.y - 0.5f)) -> 0
-                                door.facing == Facing.NORTH && isSplit(lPos, rPos, vec2(0f, door.position.y + 0.5f)) -> 0
-                                door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 0
-                                door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 0
-                                else -> 1
-                            }
-
-                            val copyList = snake.parts.toTypedArray()
-                            val snake1Parts = copyList.copyOfRange(0, idx + addToFirst)
-                            val snake2Parts = copyList.copyOfRange(idx + addToFirst, snake.parts.size).reversedArray()
-
-                            val snake1 = engine.entity {
-                                with<SnakeComponent> {
-                                    parts += snake1Parts
-                                    snakeType = SnakeType.FIRST
+                        val addToFirst = when (idx) {
+                            0 -> {
+                                val rPos = snake.parts[idx + 1]
+                                when {
+                                    door.facing == Facing.SOUTH && isSplit(lPos, rPos, vec2(0f, door.position.y - 0.5f)) -> 1
+                                    door.facing == Facing.NORTH && isSplit(lPos, rPos, vec2(0f, door.position.y + 0.5f)) -> 1
+                                    door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 1
+                                    door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 1
+                                    else -> return@let
                                 }
                             }
-
-                            val snake2 = engine.entity {
-                                with<SnakeComponent> {
-                                    parts += snake2Parts
-                                    snakeType = SnakeType.SECOND
+                            snake.parts.size - 1 -> {
+                                val rPos = snake.parts[idx - 1]
+                                when {
+                                    door.facing == Facing.SOUTH && isSplit(lPos, rPos, vec2(0f, door.position.y - 0.5f)) -> 0
+                                    door.facing == Facing.NORTH && isSplit(lPos, rPos, vec2(0f, door.position.y + 0.5f)) -> 0
+                                    door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 0
+                                    door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 0
+                                    else -> return@let
                                 }
                             }
+                            else -> {
+                                val rPos = snake.parts[idx - 1]
+                                when {
+                                    door.facing == Facing.SOUTH && isSplit(lPos, rPos, vec2(0f, door.position.y - 0.5f)) -> 0
+                                    door.facing == Facing.NORTH && isSplit(lPos, rPos, vec2(0f, door.position.y + 0.5f)) -> 0
+                                    door.facing == Facing.EAST && isSplit(lPos, rPos, vec2(door.position.x + 0.5f, 0f)) -> 0
+                                    door.facing == Facing.WEST && isSplit(lPos, rPos, vec2(door.position.x - 0.5f, 0f)) -> 0
+                                    else -> 1
+                                }
+                            }
+                        }
 
-                            game.moveHistory.push(Move.Separation(copyList))
+                        // The snake do be dead tho
+                        if (snake.snakeType != SnakeType.DOUBLE) {
+                            game.moveHistory.push(Move.SnakeDied(snake.snakeType, snake.parts.toTypedArray(), snake.lastDirection))
+                            game.snakeDead = true
 
                             engine.removeEntity(entity)
 
-                            game.currentSnakes.clear()
-                            game.currentSnakes += snake1
-                            game.currentSnakes += snake2
+                            game.currentSnakes.removeIf {
+                                it[SnakeComponent.mapper]?.let { otherSnake ->
+                                    return@removeIf otherSnake.snakeType == snake.snakeType
+                                }
+                                false
+                            }
 
                             return true
                         }
+
+                        val copyList = snake.parts.toTypedArray()
+                        val snake1Parts = copyList.copyOfRange(0, idx + addToFirst)
+                        val snake2Parts = copyList.copyOfRange(idx + addToFirst, snake.parts.size).reversedArray()
+                        val snake1Facing = determineFacing(copyList[1], copyList[0])
+                        val snake2Facing = determineFacing(copyList.reversed()[1], copyList.reversed()[0])
+
+                        val snake1 = engine.entity {
+                            with<SnakeComponent> {
+                                parts += snake1Parts
+                                snakeType = SnakeType.FIRST
+                                lastDirection = snake1Facing
+                            }
+                        }
+
+                        val snake2 = engine.entity {
+                            with<SnakeComponent> {
+                                parts += snake2Parts
+                                snakeType = SnakeType.SECOND
+                                lastDirection = snake2Facing
+                            }
+                        }
+
+                        game.moveHistory.push(Move.Separation(copyList))
+
+                        engine.removeEntity(entity)
+
+                        game.currentSnakes.clear()
+                        game.currentSnakes += snake1
+                        game.currentSnakes += snake2
+
+                        return true
                     }
                 }
             }
@@ -329,8 +398,8 @@ class SnakeInputSystem(
                         when {
                             door.facing == Facing.SOUTH && isSplit(left, right, vec2(0f, door.position.y - 0.5f)) -> return false
                             door.facing == Facing.NORTH && isSplit(left, right, vec2(0f, door.position.y + 0.5f)) -> return false
-                            door.facing == Facing.EAST && isSplit(left, right, vec2(door.position.x - 0.5f, 0f)) -> return false
-                            door.facing == Facing.WEST && isSplit(left, right, vec2(door.position.x + 0.5f, 0f)) -> return false
+                            door.facing == Facing.EAST && isSplit(left, right, vec2(door.position.x + 0.5f, 0f)) -> return false
+                            door.facing == Facing.WEST && isSplit(left, right, vec2(door.position.x - 0.5f, 0f)) -> return false
                         }
                     }
                 }
@@ -344,6 +413,16 @@ class SnakeInputSystem(
         return when {
             axis.x != 0f -> (left.x < axis.x && right.x > axis.x) || (left.x > axis.x && right.x < axis.x)
             else -> (left.y < axis.y && right.y > axis.y) || (left.y > axis.y && right.y < axis.y)
+        }
+    }
+
+    private fun determineFacing(anchor: Vector2, other: Vector2): com.gamewolves.bgj2021.ecs.systems.Facing {
+        return when {
+            other.x < anchor.x -> com.gamewolves.bgj2021.ecs.systems.Facing.WEST
+            other.x > anchor.x -> com.gamewolves.bgj2021.ecs.systems.Facing.EAST
+            other.y < anchor.y -> com.gamewolves.bgj2021.ecs.systems.Facing.SOUTH
+            other.y > anchor.y -> com.gamewolves.bgj2021.ecs.systems.Facing.NORTH
+            else -> com.gamewolves.bgj2021.ecs.systems.Facing.NONE
         }
     }
 }

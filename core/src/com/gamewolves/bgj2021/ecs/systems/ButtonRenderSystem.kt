@@ -32,8 +32,8 @@ class ButtonRenderSystem(
         val oldColor = batch.color.cpy()
 
         when (button.pressed) {
-            false -> batch.color = Color(0f, 0f, 1f, 1f)
-            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f)
+            false -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
+            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f).mul(batch.color)
         }
 
         batch.draw(button.texture, button.position.x, button.position.y, 1f, 1f)

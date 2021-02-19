@@ -33,9 +33,9 @@ class GoalRenderSystem(
         val oldColor = batch.color.cpy()
 
         when (goal.snakeType) {
-            SnakeType.FIRST -> batch.color = Color(0f, 1f, 0f, 1f)
-            SnakeType.SECOND -> batch.color = Color(0f, 0f, 1f, 1f)
-            SnakeType.DOUBLE -> batch.color = Color(0f, 1f, 1f, 1f)
+            SnakeType.FIRST -> batch.color = Color(0f, 1f, 0f, 1f).mul(batch.color)
+            SnakeType.SECOND -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
+            SnakeType.DOUBLE -> batch.color = Color(0f, 1f, 1f, 1f).mul(batch.color)
         }
 
         batch.draw(goal.texture, goal.position.x, goal.position.y, 1f, 1f)

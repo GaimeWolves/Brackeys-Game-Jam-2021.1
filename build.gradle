@@ -70,7 +70,6 @@ project(":core") {
         api "io.github.libktx:ktx-math:$ktxVersion"
         api "io.github.libktx:ktx-graphics:$ktxVersion"
         api "io.github.libktx:ktx-log:$ktxVersion"
-        api "io.github.libktx:ktx-inject:$ktxVersion"
         api "io.github.libktx:ktx-ashley:$ktxVersion"
         api "io.github.libktx:ktx-async:$ktxVersion"
         api "io.github.libktx:ktx-assets-async:$ktxVersion"
@@ -78,5 +77,8 @@ project(":core") {
         api "io.github.libktx:ktx-style:$ktxVersion"
         api "io.github.libktx:ktx-actors:$ktxVersion"
         api "io.github.libktx:ktx-tiled:$ktxVersion"
+        api "io.github.libktx:ktx-freetype:$ktxVersion"
+        api "io.github.libktx:ktx-freetype-async:$ktxVersion"
+        api "io.github.libktx:ktx-preferences:$ktxVersion"
     }
 }

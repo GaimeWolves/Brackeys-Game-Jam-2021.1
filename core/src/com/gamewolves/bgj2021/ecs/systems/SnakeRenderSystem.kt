@@ -47,7 +47,11 @@ class SnakeRenderSystem(
 
         when (idx) {
             0 -> {
-                val rotation = determineFacing(snake.parts[idx + 1], snake.parts[idx]).rotation
+                val rotation = when (snake.parts.size) {
+                    1 -> snake.lastDirection.rotation
+                    else -> determineFacing(snake.parts[idx + 1], snake.parts[idx]).rotation
+                }
+
                 batch.draw(headTexture, x, y, 0.5f, 0.5f, 1f, 1f, 1f, 1f, rotation)
             }
             snake.parts.size - 1 -> {
