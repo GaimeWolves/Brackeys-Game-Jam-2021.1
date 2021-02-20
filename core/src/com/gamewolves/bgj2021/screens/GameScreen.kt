@@ -36,11 +36,13 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.gamewolves.bgj2021.Main
 import com.gamewolves.bgj2021.assets.ShaderProgramAsset
+import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.assets.TextureAtlasAsset
 import com.gamewolves.bgj2021.assets.TiledMapAssets
 import com.gamewolves.bgj2021.ecs.components.*
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.systems.*
+import com.gamewolves.bgj2021.ui.ImageButtonSkin
 import com.gamewolves.bgj2021.ui.LabelSkin
 import com.gamewolves.bgj2021.util.unlockLevel
 import kotlinx.coroutines.launch
@@ -75,6 +77,8 @@ class GameScreen(
 
     private val viewport = FitViewport(map.width.toFloat(), map.height.toFloat()).apply { apply() }
     private val uiViewport = FitViewport(960f, 960f * (map.height.toFloat() / map.width.toFloat())).apply { apply() }
+
+    private val selectSfx = assetStorage[SoundAsset.SELECT.descriptor]
 
     private val blurShader by lazy { assetStorage[ShaderProgramAsset.BLUR.descriptor] }
 
@@ -111,6 +115,7 @@ class GameScreen(
         addSystem(BatteryRenderSystem(this@GameScreen, batch, viewport, uiViewport, font, shapeRenderer))
         addSystem(GoalRenderSystem(batch, viewport, shapeRenderer))
         addSystem(SnakeRenderSystem(batch, assetStorage[TextureAtlasAsset.SNAKE.descriptor], viewport, shapeRenderer))
+        addSystem(BatteryUIRenderSystem(this@GameScreen, batch, viewport, uiViewport, font, shapeRenderer))
     } }
 
     val moveSignal = Signal<Move.SnakeMove>()
@@ -130,6 +135,7 @@ class GameScreen(
     override fun show() {
         generateEntities()
         createUI()
+        stage += alpha(0f) then fadeIn(0.5f)
 
         super.show()
     }
@@ -194,11 +200,11 @@ class GameScreen(
                 fadeTime = 0f
                 isShowing = false
             }
-        }
-
-        if (isFading) {
+        } else if (isFading) {
             fadeTime += delta * 2f
             batch.color = Color.WHITE.cpy().lerp(0f, 0f, 0f, 1f, fadeTime)
+        } else {
+            batch.color = color(1f, 1f, 1f)
         }
 
         applyBlur {
@@ -361,9 +367,11 @@ class GameScreen(
                 defaults().expandX()
                 align(Align.topRight)
 
-                textButton("Pause") { cell ->
+                imageButton(ImageButtonSkin.PAUSE.name) { cell ->
+                    cell.width(50f).height(50f)
                     cell.top().right().padTop(5f).padRight(5f)
                     onClick {
+                        selectSfx.play(0.25f)
                         isPaused = true
 
                         rebuildActions()
@@ -378,11 +386,14 @@ class GameScreen(
             }
             pauseMenu = table {
                 defaults().fillX().center()
+                alpha = 0f
 
-                textButton("Continue") { cell ->
+                imageButton(ImageButtonSkin.PLAY.name) { cell ->
+                    cell.width(100f).height(100f)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {
+                        selectSfx.play(0.25f)
                         isPaused = false
 
                         rebuildActions()
@@ -392,10 +403,12 @@ class GameScreen(
                     }
                 }
 
-                textButton("Restart") { cell ->
+                imageButton(ImageButtonSkin.RESTART.name) { cell ->
+                    cell.width(100f).height(100f)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {
+                        selectSfx.play(0.25f)
                         while (!moveHistory.empty())
                             revertHistory()
 
@@ -408,8 +421,11 @@ class GameScreen(
                     }
                 }
 
-                textButton("Level select") {
+                imageButton(ImageButtonSkin.LEVEL_SELECT.name) { cell ->
+                    cell.width(100f).height(100f)
+                    cell.padLeft(10f).padRight(10f)
                     onClick {
+                        selectSfx.play(0.25f)
                         isFading = true
                         stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
                             main.removeScreen<GameScreen>()
@@ -427,12 +443,15 @@ class GameScreen(
             }
             levelCompleteMenu = table {
                 defaults().fillX().center()
+                alpha = 0f
 
                 if (id < TiledMapAssets.getLevelCount() - 1) {
-                    textButton("Next level") { cell ->
+                    imageButton(ImageButtonSkin.NEXT.name) { cell ->
+                        cell.width(100f).height(100f)
                         cell.padLeft(10f).padRight(10f)
 
                         onClick {
+                            selectSfx.play(0.25f)
                             isFading = true
                             stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
                                 main.removeScreen<GameScreen>()
@@ -444,10 +463,12 @@ class GameScreen(
                     }
                 }
 
-                textButton("Level select") { cell ->
+                imageButton(ImageButtonSkin.LEVEL_SELECT.name) { cell ->
+                    cell.width(100f).height(100f)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {
+                        selectSfx.play(0.25f)
                         isFading = true
                         stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
                             main.removeScreen<GameScreen>()

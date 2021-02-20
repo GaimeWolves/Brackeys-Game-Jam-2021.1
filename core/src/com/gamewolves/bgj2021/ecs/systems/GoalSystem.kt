@@ -7,6 +7,7 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.signals.Listener
 import com.badlogic.ashley.signals.Signal
 import com.badlogic.ashley.systems.IteratingSystem
+import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.ecs.components.*
 import com.gamewolves.bgj2021.screens.GameScreen
 import com.gamewolves.bgj2021.screens.Move
@@ -19,6 +20,8 @@ class GoalSystem(
 ) : IteratingSystem(
         allOf(GoalComponent::class).get()
 ), Listener<Move.SnakeMove> {
+    private val winSfx = game.assetStorage[SoundAsset.PLAYER_WON.descriptor]
+
     private lateinit var lastMove: Move.SnakeMove
     private var goalsReached = 0
 
@@ -37,8 +40,10 @@ class GoalSystem(
         goalsReached = 0
         super.update(deltaTime)
 
-        if (goalsReached == entities.size())
+        if (goalsReached == entities.size()) {
             game.hasWon = true
+            winSfx.play(0.25f)
+        }
     }
 
     override fun processEntity(entity: Entity, deltaTime: Float) {

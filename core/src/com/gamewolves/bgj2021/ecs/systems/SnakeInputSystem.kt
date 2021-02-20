@@ -6,6 +6,7 @@ import com.badlogic.ashley.systems.IteratingSystem
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.Vector2
+import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.ecs.components.DoorComponent
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.components.SnakeComponent
@@ -23,6 +24,9 @@ class SnakeInputSystem(
 ) : IteratingSystem(
         allOf(SnakeComponent::class).get()
 ) {
+    private val moveSfx = game.assetStorage[SoundAsset.MOVE.descriptor]
+    private val snakeDiedSfx = game.assetStorage[SoundAsset.SNAKE_DIED.descriptor]
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val snake = entity[SnakeComponent.mapper]
         require(snake != null) { "Entity $entity must have a SnakeComponent.." }
@@ -86,6 +90,7 @@ class SnakeInputSystem(
         }
 
         game.moveHistory.push(move)
+        moveSfx.play(0.25f)
 
         snake.lastDirection = when (direction) {
             Direction.UP -> com.gamewolves.bgj2021.ecs.systems.Facing.NORTH
@@ -119,6 +124,7 @@ class SnakeInputSystem(
     fun revertSnake(move: Move) {
         when (move) {
             is Move.SnakeMove -> {
+                moveSfx.play(0.25f)
                 val entity = entities.find { entity ->
                     val snake = entity[SnakeComponent.mapper]
                     require(snake != null) { "Entity $entity must have a SnakeComponent.." }
@@ -337,6 +343,7 @@ class SnakeInputSystem(
                         // The snake do be dead tho
                         if (snake.snakeType != SnakeType.DOUBLE) {
                             game.moveHistory.push(Move.SnakeDied(snake.snakeType, snake.parts.toTypedArray(), snake.lastDirection))
+                            snakeDiedSfx.play(0.25f)
                             game.snakeDead = true
 
                             engine.removeEntity(entity)

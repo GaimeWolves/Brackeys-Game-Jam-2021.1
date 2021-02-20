@@ -2,6 +2,7 @@ package com.gamewolves.bgj2021
 
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver
 import com.badlogic.gdx.assets.loaders.resolvers.LocalFileHandleResolver
+import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
@@ -34,17 +35,24 @@ class Main : KtxGame<KtxScreen>() {
         }
     }
 
+    private lateinit var music: Music
+
     override fun create() {
         KtxAsync.initiate()
 
         val assets = gdxArrayOf(
                 TextureAtlasAsset.values().filter { it.isSkinAtlas }.map { assetStorage.loadAsync(it.descriptor) },
-                FreeTypeFontAssets.values().map { assetStorage.loadAsync(it.descriptor) }
+                FreeTypeFontAssets.values().map { assetStorage.loadAsync(it.descriptor) },
+                MusicAsset.values().map { assetStorage.loadAsync(it.descriptor) }
         ).flatten()
 
         KtxAsync.launch {
             assets.joinAll()
             createSkin(assetStorage)
+            music = assetStorage[MusicAsset.MUSIC.descriptor]
+            music.isLooping = true
+            music.volume = 0.5f
+            music.play()
 
             addScreen(LoadingScreen(this@Main))
             setScreen<LoadingScreen>()
@@ -53,6 +61,8 @@ class Main : KtxGame<KtxScreen>() {
     }
 
     override fun dispose() {
+        music.stop()
+
         super.dispose()
         assetStorage.dispose()
         batch.dispose()

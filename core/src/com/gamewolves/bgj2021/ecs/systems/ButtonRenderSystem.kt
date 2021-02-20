@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
+import com.gamewolves.bgj2021.ui.colorFromHSL
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
@@ -31,9 +32,16 @@ class ButtonRenderSystem(
 
         val oldColor = batch.color.cpy()
 
+        val saturation = when (button.pressed) {
+            true -> 0.8f
+            false -> 0.6f
+        }
+
+        val color = colorFromHSL(button.id.toFloat() * (1f / 6f), saturation, 0.5f)
+
         when (button.pressed) {
-            false -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
-            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f).mul(batch.color)
+            false -> batch.color = color.mul(batch.color)
+            true -> batch.color = color.mul(batch.color)
         }
 
         batch.draw(button.texture, button.position.x, button.position.y, 1f, 1f)
