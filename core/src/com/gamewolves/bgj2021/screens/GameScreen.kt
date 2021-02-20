@@ -73,7 +73,7 @@ class GameScreen(
     private val mapLabels = arrayListOf<Label>()
 
     private val viewport = FitViewport(map.width.toFloat(), map.height.toFloat()).apply { apply() }
-    private val uiViewport = FitViewport(960f, 960f * (map.height.toFloat() / map.width.toFloat())).apply { apply() }
+    private val uiViewport = FitViewport(map.width.toFloat() * 45f, map.height.toFloat() * 45f).apply { apply() }
 
     private val selectSfx = assetStorage[SoundAsset.SELECT.descriptor]
     private val background = assetStorage[TextureAsset.BACKGROUND.descriptor]
@@ -117,7 +117,11 @@ class GameScreen(
     } }
 
     val moveSignal = Signal<Move.SnakeMove>()
-    val uiPixelScale = uiViewport.worldWidth / viewport.worldWidth
+    val uiPixelScale = uiViewport.worldHeight / viewport.worldHeight
+    private val uiScale = when {
+        map.width < map.height -> map.width * 5f
+        else -> map.height * 5f
+    }
     val moveHistory = Stack<Move>()
 
     var hasWon = false
@@ -178,6 +182,19 @@ class GameScreen(
                 blurRadius = MAX_BLUR_RADIUS
         }
 
+        if ((hasWon || isPaused) && snakeSystem.checkProcessing()) {
+            snakeSystem.setProcessing(false)
+            doorSystem.setProcessing(false)
+            buttonSystem.setProcessing(false)
+            goalSystem.setProcessing(false)
+        }
+        else if (!isPaused && !hasWon && !snakeSystem.checkProcessing()) {
+            snakeSystem.setProcessing(true)
+            doorSystem.setProcessing(true)
+            buttonSystem.setProcessing(true)
+            goalSystem.setProcessing(true)
+        }
+
         if (snakeDead && snakeSystem.checkProcessing()) {
             snakeDiedLabel.isVisible = true
             snakeSystem.setProcessing(false)
@@ -219,19 +236,6 @@ class GameScreen(
             uiViewport.apply()
             act()
             draw()
-        }
-
-        if ((hasWon || isPaused) && snakeSystem.checkProcessing()) {
-            snakeSystem.setProcessing(false)
-            doorSystem.setProcessing(false)
-            buttonSystem.setProcessing(false)
-            goalSystem.setProcessing(false)
-        }
-        else if (!isPaused && !hasWon && !snakeSystem.checkProcessing()) {
-            snakeSystem.setProcessing(true)
-            doorSystem.setProcessing(true)
-            buttonSystem.setProcessing(true)
-            goalSystem.setProcessing(true)
         }
 
         if (snakeSystem.checkProcessing()) {
@@ -369,7 +373,7 @@ class GameScreen(
                 align(Align.topRight)
 
                 imageButton(ImageButtonSkin.PAUSE.name) { cell ->
-                    cell.width(50f).height(50f)
+                    cell.width(uiScale / 2f).height(uiScale / 2f)
                     cell.top().right().padTop(5f).padRight(5f)
                     onClick {
                         selectSfx.play(0.25f)
@@ -390,7 +394,7 @@ class GameScreen(
                 alpha = 0f
 
                 imageButton(ImageButtonSkin.PLAY.name) { cell ->
-                    cell.width(100f).height(100f)
+                    cell.width(uiScale).height(uiScale)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {
@@ -405,7 +409,7 @@ class GameScreen(
                 }
 
                 imageButton(ImageButtonSkin.RESTART.name) { cell ->
-                    cell.width(100f).height(100f)
+                    cell.width(uiScale).height(uiScale)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {
@@ -423,7 +427,7 @@ class GameScreen(
                 }
 
                 imageButton(ImageButtonSkin.LEVEL_SELECT.name) { cell ->
-                    cell.width(100f).height(100f)
+                    cell.width(uiScale).height(uiScale)
                     cell.padLeft(10f).padRight(10f)
                     onClick {
                         selectSfx.play(0.25f)
@@ -448,7 +452,7 @@ class GameScreen(
 
                 if (id < TiledMapAssets.getLevelCount() - 1) {
                     imageButton(ImageButtonSkin.NEXT.name) { cell ->
-                        cell.width(100f).height(100f)
+                        cell.width(uiScale).height(uiScale)
                         cell.padLeft(10f).padRight(10f)
 
                         onClick {
@@ -465,7 +469,7 @@ class GameScreen(
                 }
 
                 imageButton(ImageButtonSkin.LEVEL_SELECT.name) { cell ->
-                    cell.width(100f).height(100f)
+                    cell.width(uiScale).height(uiScale)
                     cell.padLeft(10f).padRight(10f)
 
                     onClick {

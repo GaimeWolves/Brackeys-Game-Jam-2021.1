@@ -40,20 +40,27 @@ class ElectricitySystem(
         val battery = entity[BatteryComponent.mapper]
         require(battery != null) { "Entity $entity must have a BatteryComponent." }
 
+        var charged = false
+
         engine.getEntitiesFor(allOf(SnakeComponent::class).get()).forEach { snakeEntity ->
             run {
                 snakeEntity[SnakeComponent.mapper]?.let { snake ->
-                    if (snake.snakeType == lastMove.snakeType && snake.powered && snake.parts.contains(battery.position) && battery.charge < battery.maxCharge) {
+                    if (snake.snakeType == lastMove.snakeType && snake.powered && snake.parts.contains(battery.position)) {
+                        charged = true
+
+                        if (battery.charge == battery.maxCharge)
+                            return@forEach
+
                         game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
                         battery.charge = battery.maxCharge
                         chargeSfx.play(0.15f)
-                        return
+                        return@forEach
                     }
                 }
             }
         }
 
-        if (battery.charge > 0) {
+        if (battery.charge > 0 && !charged) {
             game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
             battery.charge--
         }

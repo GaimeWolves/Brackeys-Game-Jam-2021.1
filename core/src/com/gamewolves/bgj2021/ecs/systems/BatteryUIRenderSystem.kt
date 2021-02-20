@@ -48,9 +48,9 @@ class BatteryUIRenderSystem(
             fonts[Fonts.DEFAULT.name]?.draw(
                     batch,
                     battery.charge.toString(),
-                    uiPosition.x - game.uiPixelScale,
+                    uiPosition.x - game.uiPixelScale * 2,
                     uiPosition.y + game.uiPixelScale,
-                    game.uiPixelScale * 3,
+                    game.uiPixelScale * 5,
                     Align.center,
                     false
             )
