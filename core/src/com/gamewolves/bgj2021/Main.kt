@@ -1,6 +1,7 @@
 package com.gamewolves.bgj2021
 
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver
+import com.badlogic.gdx.assets.loaders.resolvers.LocalFileHandleResolver
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
@@ -27,8 +28,8 @@ class Main : KtxGame<KtxScreen>() {
     val shapeRenderer by lazy { ShapeRenderer() }
     val font by lazy { BitmapFont() }
     val assetStorage by lazy {
-        AssetStorage().apply {
-            this.setLoader(".tmx") { TmxMapLoader(InternalFileHandleResolver()) }
+        AssetStorage(fileResolver = LocalFileHandleResolver()).apply {
+            this.setLoader(".tmx") { TmxMapLoader(LocalFileHandleResolver()) }
             this.registerFreeTypeFontLoaders(replaceDefaultBitmapFontLoader = true)
         }
     }

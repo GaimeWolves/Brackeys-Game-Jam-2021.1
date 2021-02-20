@@ -1,0 +1,174 @@
+
+tilemap.png
+size: 2048, 128
+format: RGBA8888
+filter: Nearest, Nearest
+repeat: none
+battery_empty
+  rotate: false
+  xy: 1453, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+battery_full
+  rotate: false
+  xy: 925, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+button
+  rotate: false
+  xy: 1057, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+cable_corner
+  rotate: false
+  xy: 199, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+cable_end
+  rotate: false
+  xy: 1, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+cable_line
+  rotate: false
+  xy: 595, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+cable_t
+  rotate: false
+  xy: 859, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+cable_x
+  rotate: false
+  xy: 265, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+door_closed
+  rotate: false
+  xy: 1387, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+door_open
+  rotate: false
+  xy: 331, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+goal
+  rotate: false
+  xy: 67, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+power_source
+  rotate: false
+  xy: 1255, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+tile_var
+  rotate: false
+  xy: 727, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+tile
+  rotate: false
+  xy: 727, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_base
+  rotate: false
+  xy: 661, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_bottom
+  rotate: false
+  xy: 463, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_bottom_right
+  rotate: false
+  xy: 397, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_corner
+  rotate: false
+  xy: 1321, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_full
+  rotate: false
+  xy: 1189, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_line
+  rotate: false
+  xy: 991, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_open_left
+  rotate: false
+  xy: 793, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_t
+  rotate: false
+  xy: 529, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_t_corner
+  rotate: false
+  xy: 1123, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+wall_two_corners
+  rotate: false
+  xy: 133, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1

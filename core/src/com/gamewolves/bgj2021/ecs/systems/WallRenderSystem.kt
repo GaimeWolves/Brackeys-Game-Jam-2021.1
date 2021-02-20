@@ -36,6 +36,27 @@ class WallRenderSystem(
         val wall = entity[WallComponent.mapper]
         require(wall != null) { "Entity $entity must have a WallComponent." }
 
-        batch.draw(wall.texture, wall.position.x, wall.position.y, 1f, 1f)
+        val scaleX = when(wall.flipX) {
+            true -> -1f
+            false -> 1f
+        }
+
+        val scaleY = when(wall.flipY) {
+            true -> -1f
+            false -> 1f
+        }
+
+        batch.draw(
+                wall.texture,
+                wall.position.x,
+                wall.position.y,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+                scaleX,
+                scaleY,
+                wall.rotation
+        )
     }
 }

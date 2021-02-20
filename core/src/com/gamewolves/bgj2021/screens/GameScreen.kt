@@ -593,6 +593,9 @@ class GameScreen(
                 with<WallComponent> {
                     position.set(x.toFloat(), y.toFloat())
                     texture.setRegion(cell.tile.textureRegion)
+                    flipX = cell.flipHorizontally
+                    flipY = cell.flipVertically
+                    rotation = cell.rotation * 90f
                 }
             }
         }
