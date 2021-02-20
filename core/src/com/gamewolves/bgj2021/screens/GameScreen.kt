@@ -35,10 +35,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.FitViewport
 import com.gamewolves.bgj2021.Main
-import com.gamewolves.bgj2021.assets.ShaderProgramAsset
-import com.gamewolves.bgj2021.assets.SoundAsset
-import com.gamewolves.bgj2021.assets.TextureAtlasAsset
-import com.gamewolves.bgj2021.assets.TiledMapAssets
+import com.gamewolves.bgj2021.assets.*
 import com.gamewolves.bgj2021.ecs.components.*
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.systems.*
@@ -79,6 +76,7 @@ class GameScreen(
     private val uiViewport = FitViewport(960f, 960f * (map.height.toFloat() / map.width.toFloat())).apply { apply() }
 
     private val selectSfx = assetStorage[SoundAsset.SELECT.descriptor]
+    private val background = assetStorage[TextureAsset.BACKGROUND.descriptor]
 
     private val blurShader by lazy { assetStorage[ShaderProgramAsset.BLUR.descriptor] }
 
@@ -208,6 +206,9 @@ class GameScreen(
         }
 
         applyBlur {
+            batch.use(viewport.camera.projection) {
+                batch.draw(background, viewport.worldWidth * -0.5f, viewport.worldHeight * -0.5f, viewport.worldWidth, viewport.worldHeight)
+            }
             engine.update(delta)
             batch.use(uiViewport.camera.projection) {
                 mapLabels.forEach { it.draw(batch, 1f) }

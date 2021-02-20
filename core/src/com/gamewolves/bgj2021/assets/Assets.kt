@@ -53,7 +53,6 @@ enum class TextureAsset(
         val descriptor: AssetDescriptor<Texture> = AssetDescriptor("$directory/$fileName", Texture::class.java)
 ) {
     BACKGROUND("background.png"),
-    GRID_OVERLAY("grid_overlay.png"),
     LEVEL_SELECT_BG("level_select_bg.png"),
     TITLE_BG("title_bg.png")
 }
