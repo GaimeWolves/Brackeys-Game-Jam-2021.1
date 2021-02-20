@@ -7,6 +7,7 @@ import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.signals.Listener
 import com.badlogic.ashley.signals.Signal
 import com.badlogic.ashley.systems.IteratingSystem
+import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
 import com.gamewolves.bgj2021.ecs.components.DoorComponent
 import com.gamewolves.bgj2021.ecs.components.SnakeComponent
@@ -22,6 +23,7 @@ class ElectricitySystem(
         allOf(BatteryComponent::class).get()
 ), Listener<Move.SnakeMove> {
     private lateinit var lastMove: Move.SnakeMove
+    private val chargeSfx = game.assetStorage[SoundAsset.BATTERY_CHARGED.descriptor]
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
@@ -38,22 +40,23 @@ class ElectricitySystem(
         val battery = entity[BatteryComponent.mapper]
         require(battery != null) { "Entity $entity must have a BatteryComponent." }
 
-        if (battery.charge > 0) {
-            game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
-            battery.charge--
-        }
-
         engine.getEntitiesFor(allOf(SnakeComponent::class).get()).forEach { snakeEntity ->
             run {
                 snakeEntity[SnakeComponent.mapper]?.let { snake ->
-                    if (snake.snakeType == lastMove.snakeType && snake.powered && snake.parts.contains(battery.position)) {
+                    if (snake.snakeType == lastMove.snakeType && snake.powered && snake.parts.contains(battery.position) && battery.charge < battery.maxCharge) {
                         game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
                         battery.charge = battery.maxCharge
+                        chargeSfx.play(0.15f)
+                        return
                     }
                 }
             }
         }
 
+        if (battery.charge > 0) {
+            game.moveHistory.push(Move.ChargeChanged(battery, battery.charge))
+            battery.charge--
+        }
     }
 
     override fun receive(signal: Signal<Move.SnakeMove>?, move: Move.SnakeMove?) {

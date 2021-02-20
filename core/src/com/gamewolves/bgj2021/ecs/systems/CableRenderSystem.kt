@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.utils.viewport.Viewport
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
 import com.gamewolves.bgj2021.ecs.components.CableComponent
+import com.gamewolves.bgj2021.ui.colorFromHSL
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.graphics.use
@@ -32,9 +33,16 @@ class CableRenderSystem(
 
         val oldColor = batch.color.cpy()
 
+        val saturation = when (cable.active) {
+            true -> 0.8f
+            false -> 0.6f
+        }
+
+        val color = colorFromHSL(cable.id.toFloat() * (1f / 6f), saturation, 0.5f)
+
         when (cable.active) {
-            false -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
-            true -> batch.color = Color(0.5f, 0.5f, 1f, 1f).mul(batch.color)
+            false -> batch.color = color.mul(batch.color)
+            true -> batch.color = color.mul(batch.color)
         }
 
         val scaleX = when (cable.flipX) {

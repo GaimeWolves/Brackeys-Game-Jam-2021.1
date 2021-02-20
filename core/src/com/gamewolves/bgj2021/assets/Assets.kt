@@ -17,16 +17,24 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader
 
 enum class SoundAsset(
         fileName: String,
-        directory: String = "sound",
+        directory: String = "audio",
         val descriptor: AssetDescriptor<Sound> = AssetDescriptor("$directory/$fileName", Sound::class.java)
 ) {
+    BATTERY_CHARGED("battery_charge.wav"),
+    BUTTON_DOWN("button_down.wav"),
+    BUTTON_UP("button_up.wav"),
+    MOVE("move.wav"),
+    SELECT("select.wav"),
+    SNAKE_DIED("snakedie.wav"),
+    PLAYER_WON("win.wav")
 }
 
 enum class MusicAsset(
         fileName: String,
-        directory: String = "music",
+        directory: String = "audio",
         val descriptor: AssetDescriptor<Music> = AssetDescriptor("$directory/$fileName", Music::class.java)
 ) {
+    MUSIC("bg_music.ogg")
 }
 
 enum class TextureAtlasAsset(
@@ -36,6 +44,7 @@ enum class TextureAtlasAsset(
         val descriptor: AssetDescriptor<TextureAtlas> = AssetDescriptor("$directory/$fileName", TextureAtlas::class.java)
 ) {
     SNAKE(false, "snake.atlas"),
+    UI(true, "ui.atlas")
 }
 
 enum class TextureAsset(
@@ -44,7 +53,9 @@ enum class TextureAsset(
         val descriptor: AssetDescriptor<Texture> = AssetDescriptor("$directory/$fileName", Texture::class.java)
 ) {
     BACKGROUND("background.png"),
-    GRID_OVERLAY("grid_overlay.png")
+    GRID_OVERLAY("grid_overlay.png"),
+    LEVEL_SELECT_BG("level_select_bg.png"),
+    TITLE_BG("title_bg.png")
 }
 
 enum class ShaderProgramAsset(

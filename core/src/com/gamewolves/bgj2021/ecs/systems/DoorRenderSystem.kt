@@ -14,6 +14,7 @@ import com.gamewolves.bgj2021.ecs.components.DoorComponent
 import com.gamewolves.bgj2021.ecs.components.Facing
 import com.gamewolves.bgj2021.ecs.components.SnakeComponent
 import com.gamewolves.bgj2021.ecs.components.WallComponent
+import com.gamewolves.bgj2021.ui.colorFromHSL
 import ktx.ashley.allOf
 import ktx.ashley.get
 import ktx.collections.iterate
@@ -51,6 +52,20 @@ class DoorRenderSystem(
             false -> door.closedTexture
         }
 
+        val oldColor = batch.color.cpy()
+
+        val saturation = when (door.open) {
+            true -> 0.8f
+            false -> 0.6f
+        }
+
+        val color = colorFromHSL(door.id.toFloat() * (1f / 6f), saturation, 0.5f)
+
+        when (door.open) {
+            false -> batch.color = color.mul(batch.color)
+            true -> batch.color = color.mul(batch.color)
+        }
+
         batch.draw(
                 texture,
                 door.position.x,
@@ -63,5 +78,7 @@ class DoorRenderSystem(
                 1f,
                 angle
         )
+
+        batch.color = oldColor
     }
 }

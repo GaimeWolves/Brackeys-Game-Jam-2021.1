@@ -11,7 +11,9 @@ import com.gamewolves.bgj2021.ecs.components.ButtonComponent
 import com.gamewolves.bgj2021.ecs.components.GoalComponent
 import ktx.ashley.allOf
 import ktx.ashley.get
+import ktx.graphics.color
 import ktx.graphics.use
+import kotlin.math.abs
 
 class GoalRenderSystem(
         private val batch: SpriteBatch,
@@ -35,7 +37,10 @@ class GoalRenderSystem(
         when (goal.snakeType) {
             SnakeType.FIRST -> batch.color = Color(0f, 1f, 0f, 1f).mul(batch.color)
             SnakeType.SECOND -> batch.color = Color(0f, 0f, 1f, 1f).mul(batch.color)
-            SnakeType.DOUBLE -> batch.color = Color(0f, 1f, 1f, 1f).mul(batch.color)
+            SnakeType.DOUBLE -> {
+                val progress = -abs((System.currentTimeMillis().toDouble() / 4000f) % 2 - 1) + 1
+                batch.color = color(0f, 1f, 0f).lerp(0f, 0f, 1f, 1f, progress.toFloat()).mul(batch.color)
+            }
         }
 
         batch.draw(goal.texture, goal.position.x, goal.position.y, 1f, 1f)

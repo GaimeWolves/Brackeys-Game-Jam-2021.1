@@ -2,6 +2,7 @@ package com.gamewolves.bgj2021.ecs.systems
 
 import com.badlogic.ashley.core.Entity
 import com.badlogic.ashley.systems.IteratingSystem
+import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.ecs.components.ButtonComponent
 import com.gamewolves.bgj2021.ecs.components.SnakeComponent
 import com.gamewolves.bgj2021.screens.GameScreen
@@ -14,6 +15,9 @@ class ButtonInputSystem(
 ) : IteratingSystem(
         allOf(ButtonComponent::class).get()
 ) {
+    private val buttonDown = game.assetStorage[SoundAsset.BUTTON_DOWN.descriptor]
+    private val buttonUp = game.assetStorage[SoundAsset.BUTTON_UP.descriptor]
+
     override fun processEntity(entity: Entity, deltaTime: Float) {
         val button = entity[ButtonComponent.mapper]
         require(button != null) { "Entity $entity must have a ButtonComponent." }
@@ -32,7 +36,13 @@ class ButtonInputSystem(
             }
         }
 
-        if (oldPressed != button.pressed)
+        if (oldPressed != button.pressed) {
             game.moveHistory.push(Move.ButtonChanged(button, oldPressed))
+
+            when (button.pressed) {
+                true -> buttonDown.play(0.25f)
+                false -> buttonUp.play(0.25f)
+            }
+        }
     }
 }
