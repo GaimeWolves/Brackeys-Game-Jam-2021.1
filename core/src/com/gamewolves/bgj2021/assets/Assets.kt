@@ -93,11 +93,19 @@ enum class TiledMapAssets(
                 TiledMap::class.java
         )
 ) {
-    TEST_MAP("level_test.tmx");
+    TEST_MAP("level_test.tmx"),
+    LEVEL1("level0.tmx"),
+    LEVEL2("level1.tmx"),
+    LEVEL3("level2.tmx"),
+    LEVEL4("level3.tmx"),
+    LEVEL5("level4.tmx"),
+    LEVEL6("level5.tmx"),
+    LEVEL7("level6.tmx"),
+    LEVEL8("level7.tmx"),
+    LEVEL9("level8.tmx"),
+    LEVEL10("level9.tmx");
 
     companion object {
-        private var levelCount = -1
-
         fun getLevelById(id: Int): AssetDescriptor<TiledMap> {
             return AssetDescriptor(
                     "levels/level$id.tmx",
@@ -106,12 +114,7 @@ enum class TiledMapAssets(
         }
 
         fun getLevelCount(): Int {
-            if (levelCount == -1) {
-                val levelFolderHandle = Gdx.files.internal("levels")
-                levelCount = levelFolderHandle.list(".tmx").size - 1
-            }
-
-            return levelCount // Don't count test level
+            return values().size - 1
         }
     }
 }

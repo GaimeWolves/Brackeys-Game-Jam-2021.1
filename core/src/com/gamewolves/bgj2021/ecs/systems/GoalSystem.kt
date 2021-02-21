@@ -19,16 +19,15 @@ class GoalSystem(
         private val game: GameScreen
 ) : IteratingSystem(
         allOf(GoalComponent::class).get()
-), Listener<Move.SnakeMove> {
+), Listener<Move> {
     private val winSfx = game.assetStorage[SoundAsset.PLAYER_WON.descriptor]
 
-    private lateinit var lastMove: Move.SnakeMove
+    private lateinit var lastMove: Move
     private var goalsReached = 0
 
     override fun addedToEngine(engine: Engine?) {
         super.addedToEngine(engine)
         game.moveSignal.add(this)
-        setProcessing(false)
     }
 
     override fun removedFromEngine(engine: Engine?) {
@@ -63,7 +62,7 @@ class GoalSystem(
 
     }
 
-    override fun receive(signal: Signal<Move.SnakeMove>?, move: Move.SnakeMove?) {
+    override fun receive(signal: Signal<Move>?, move: Move?) {
         move?.let {
             lastMove = move
             update(0f)

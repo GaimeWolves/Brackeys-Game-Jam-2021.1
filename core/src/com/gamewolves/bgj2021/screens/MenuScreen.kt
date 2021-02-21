@@ -11,6 +11,7 @@ import com.gamewolves.bgj2021.assets.SoundAsset
 import com.gamewolves.bgj2021.assets.TextureAsset
 import com.gamewolves.bgj2021.ui.ImageButtonSkin
 import ktx.actors.*
+import ktx.graphics.color
 import ktx.graphics.use
 import ktx.log.logger
 import ktx.scene2d.actors
@@ -72,10 +73,11 @@ class MenuScreen(
     private fun setupUI() {
         stage.actors {
             table {
-                defaults().fillX().expandX().fillY()
+                defaults().fillX().expandX().fillY().padTop(100f).padLeft(100f)
 
                 imageButton(ImageButtonSkin.PLAY.name) { cell ->
                     cell.width(100f).height(100f)
+                    color = color(0.3f, 0.3f, 0.3f, 1f)
                     onClick {
                         selectSfx.play(0.25f)
                         stage += alpha(1f) + fadeOut(0.5f) + Actions.run {
@@ -90,6 +92,8 @@ class MenuScreen(
                 imageButton(ImageButtonSkin.EXIT.name) { cell ->
                     cell.width(100f).height(100f)
                     cell.padRight(uiViewport.worldWidth * 0.1f)
+
+                    color = color(0.3f, 0.3f, 0.3f, 1f)
 
                     onClick {
                         selectSfx.play(0.25f)

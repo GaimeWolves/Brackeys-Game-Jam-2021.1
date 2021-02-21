@@ -19,6 +19,7 @@ import com.gamewolves.bgj2021.ui.Fonts
 import com.gamewolves.bgj2021.ui.fonts
 import ktx.ashley.allOf
 import ktx.ashley.get
+import ktx.graphics.color
 import ktx.graphics.use
 import kotlin.random.Random
 
@@ -42,18 +43,16 @@ class BatteryUIRenderSystem(
         val battery = entity[BatteryComponent.mapper]
         require(battery != null) { "Entity $entity must have a BatteryComponent." }
 
-        if (battery.charge > 0) {
-            val uiPosition = battery.position.cpy().scl(game.uiPixelScale)
+        val uiPosition = battery.position.cpy().scl(game.uiPixelScale)
 
-            fonts[Fonts.DEFAULT.name]?.draw(
-                    batch,
-                    battery.charge.toString(),
-                    uiPosition.x - game.uiPixelScale * 2,
-                    uiPosition.y + game.uiPixelScale,
-                    game.uiPixelScale * 5,
-                    Align.center,
-                    false
-            )
-        }
+        fonts[Fonts.DEFAULT.name]?.draw(
+                batch,
+                "${battery.charge}/${battery.maxCharge}",
+                uiPosition.x - game.uiPixelScale * 2,
+                uiPosition.y + game.uiPixelScale,
+                game.uiPixelScale * 5,
+                Align.center,
+                false
+        )
     }
 }

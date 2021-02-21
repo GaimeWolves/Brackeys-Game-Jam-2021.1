@@ -116,7 +116,7 @@ class GameScreen(
         addSystem(BatteryUIRenderSystem(this@GameScreen, batch, viewport, uiViewport, font, shapeRenderer))
     } }
 
-    val moveSignal = Signal<Move.SnakeMove>()
+    val moveSignal = Signal<Move>()
     val uiPixelScale = uiViewport.worldHeight / viewport.worldHeight
     private val uiScale = when {
         map.width < map.height -> map.width * 5f
@@ -238,7 +238,7 @@ class GameScreen(
             draw()
         }
 
-        if (snakeSystem.checkProcessing()) {
+        if (!hasWon && !isPaused) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.BACKSPACE))
                 revertHistory()
         }

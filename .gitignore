@@ -4,6 +4,9 @@
 *.war
 *.ear
 hs_err_pid*
+final-packing/
+Sneks.zip
+sneks.zip
 
 ## Robovm
 /ios/robovm-build/

@@ -21,8 +21,8 @@ class ElectricitySystem(
         private val game: GameScreen
 ) : IteratingSystem(
         allOf(BatteryComponent::class).get()
-), Listener<Move.SnakeMove> {
-    private lateinit var lastMove: Move.SnakeMove
+), Listener<Move> {
+    private lateinit var lastMove: Move
     private val chargeSfx = game.assetStorage[SoundAsset.BATTERY_CHARGED.descriptor]
 
     override fun addedToEngine(engine: Engine?) {
@@ -45,7 +45,7 @@ class ElectricitySystem(
         engine.getEntitiesFor(allOf(SnakeComponent::class).get()).forEach { snakeEntity ->
             run {
                 snakeEntity[SnakeComponent.mapper]?.let { snake ->
-                    if (snake.snakeType == lastMove.snakeType && snake.powered && snake.parts.contains(battery.position)) {
+                    if (snake.powered && snake.parts.contains(battery.position)) {
                         charged = true
 
                         if (battery.charge == battery.maxCharge)
@@ -66,7 +66,7 @@ class ElectricitySystem(
         }
     }
 
-    override fun receive(signal: Signal<Move.SnakeMove>?, move: Move.SnakeMove?) {
+    override fun receive(signal: Signal<Move>?, move: Move?) {
         move?.let {
             lastMove = move
             update(0f)

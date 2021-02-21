@@ -38,8 +38,7 @@ class LoadingScreen(
                 SoundAsset.values().map { assetStorage.loadAsync(it.descriptor) },
                 MusicAsset.values().map { assetStorage.loadAsync(it.descriptor) },
                 ShaderProgramAsset.values().map { assetStorage.loadAsync(it.descriptor) },
-                TiledMapAssets.values().map { assetStorage.loadAsync(it.descriptor) },
-                (0 until TiledMapAssets.getLevelCount()).map { assetStorage.loadAsync(TiledMapAssets.getLevelById(it)) }
+                TiledMapAssets.values().map { assetStorage.loadAsync(it.descriptor) }
         ).flatten()
 
         KtxAsync.launch {

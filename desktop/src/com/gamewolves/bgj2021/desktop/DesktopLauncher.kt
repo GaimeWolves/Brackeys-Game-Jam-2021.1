@@ -11,6 +11,7 @@ object DesktopLauncher {
         val config = LwjglApplicationConfiguration().apply {
             width = 1600
             height = 900
+            title = "Sneks"
         }
 
         LwjglApplication(Main(), config).logLevel = Application.LOG_DEBUG

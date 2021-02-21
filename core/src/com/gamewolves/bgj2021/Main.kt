@@ -29,8 +29,8 @@ class Main : KtxGame<KtxScreen>() {
     val shapeRenderer by lazy { ShapeRenderer() }
     val font by lazy { BitmapFont() }
     val assetStorage by lazy {
-        AssetStorage(fileResolver = LocalFileHandleResolver()).apply {
-            this.setLoader(".tmx") { TmxMapLoader(LocalFileHandleResolver()) }
+        AssetStorage(fileResolver = InternalFileHandleResolver()).apply {
+            this.setLoader(".tmx") { TmxMapLoader(InternalFileHandleResolver()) }
             this.registerFreeTypeFontLoaders(replaceDefaultBitmapFontLoader = true)
         }
     }

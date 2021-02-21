@@ -269,9 +269,9 @@ class SnakeInputSystem(
         if (!checkDoorCollisions(tail1, tail2))
             return
 
-        when (snakeComponent1.snakeType) {
-            SnakeType.FIRST -> game.moveHistory.push(Move.Recombination(snakeComponent1.parts.toTypedArray(), snakeComponent2.parts.toTypedArray()))
-            SnakeType.SECOND -> game.moveHistory.push(Move.Recombination(snakeComponent2.parts.toTypedArray(), snakeComponent1.parts.toTypedArray()))
+        val move = when (snakeComponent1.snakeType) {
+            SnakeType.FIRST -> Move.Recombination(snakeComponent1.parts.toTypedArray(), snakeComponent2.parts.toTypedArray())
+            SnakeType.SECOND -> Move.Recombination(snakeComponent2.parts.toTypedArray(), snakeComponent1.parts.toTypedArray())
             else -> error("There should not be a double snake here")
         }
 
@@ -294,6 +294,9 @@ class SnakeInputSystem(
 
         game.currentSnakes.clear()
         game.currentSnakes += newSnake
+
+        game.moveHistory.push(move)
+        game.moveSignal.dispatch(move)
     }
 
     private fun checkSplitting(entity: Entity, snake: SnakeComponent): Boolean {
@@ -380,13 +383,16 @@ class SnakeInputSystem(
                             }
                         }
 
-                        game.moveHistory.push(Move.Separation(copyList))
+                        val move = Move.Separation(copyList)
 
                         engine.removeEntity(entity)
 
                         game.currentSnakes.clear()
                         game.currentSnakes += snake1
                         game.currentSnakes += snake2
+
+                        game.moveHistory.push(move)
+                        game.moveSignal.dispatch(move)
 
                         return true
                     }
